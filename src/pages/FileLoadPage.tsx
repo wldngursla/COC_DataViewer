@@ -1,13 +1,14 @@
 /**
- * File Loading — V1 첫 화면.
- * 파일 선택/드롭 → Web Worker 파싱(진행률) → 요약 표시 or 오류 표시.
- * 파싱 로직은 src/parser에 있고, 이 페이지는 상태 전이와 표시만 담당한다.
+ * File Loading — 진입 화면.
+ * 파일 선택/드롭 → Web Worker 파싱(진행률) → 성공 시 onLoaded로 App에 run을
+ * 넘긴다(App이 Overview로 전환). 이 화면으로 돌아오면 마지막 run의 Parse
+ * Summary를 보여주고 새 파일을 받을 수 있다.
  */
 
 import { useCallback, useState } from 'react';
 import { parseLogFile } from '../parser/parseLogFile';
 import { LogParseError } from '../parser/types';
-import type { ParsedLog } from '../parser/types';
+import type { LoadedRun } from '../state/loadedRun';
 import { formatBytes } from '../ui/format';
 import { FileDropZone } from '../components/FileDropZone';
 import { ParseSummary } from '../components/ParseSummary';
@@ -20,7 +21,6 @@ interface FileInfo {
 type LoadState =
   | { phase: 'idle' }
   | { phase: 'parsing'; file: FileInfo; progress: number }
-  | { phase: 'done'; file: FileInfo; result: ParsedLog }
   | { phase: 'error'; file: FileInfo; message: string };
 
 function errorMessage(err: unknown): string {
@@ -41,7 +41,13 @@ function errorMessage(err: unknown): string {
   return `파일을 읽는 중 오류가 발생했습니다: ${err instanceof Error ? err.message : String(err)}`;
 }
 
-export function FileLoadPage() {
+interface FileLoadPageProps {
+  /** 마지막으로 성공한 run (App 소유) — 이 화면에서는 요약으로 보여준다 */
+  run: LoadedRun | null;
+  onLoaded: (run: LoadedRun) => void;
+}
+
+export function FileLoadPage({ run, onLoaded }: FileLoadPageProps) {
   const [state, setState] = useState<LoadState>({ phase: 'idle' });
 
   const handleFile = useCallback(
@@ -58,24 +64,30 @@ export function FileLoadPage() {
               : prev,
           ),
       })
-        .then((result) => setState({ phase: 'done', file: info, result }))
+        .then((result) => {
+          setState({ phase: 'idle' });
+          onLoaded({ fileName: info.name, fileSize: info.size, result });
+        })
         .catch((err: unknown) => setState({ phase: 'error', file: info, message: errorMessage(err) }));
     },
-    [state.phase],
+    [state.phase, onLoaded],
   );
 
-  const file = state.phase === 'idle' ? null : state.file;
   const parsing = state.phase === 'parsing';
+  // 파싱/오류 중에는 그 파일을, 아니면 마지막 성공 run의 파일을 보여준다
+  const shownFile: FileInfo | null =
+    state.phase !== 'idle' ? state.file : run !== null ? { name: run.fileName, size: run.fileSize } : null;
+  const showLastRun = state.phase === 'idle' && run !== null;
 
   return (
     <main className="page">
-      <FileDropZone onFile={handleFile} disabled={parsing} compact={state.phase === 'done'} />
+      <FileDropZone onFile={handleFile} disabled={parsing} compact={showLastRun} />
 
-      {file !== null && (
+      {shownFile !== null && (
         <div className="file-info">
-          <span className="file-name">{file.name}</span>
-          <span className="file-size">{formatBytes(file.size)}</span>
-          {state.phase === 'done' && (
+          <span className="file-name">{shownFile.name}</span>
+          <span className="file-size">{formatBytes(shownFile.size)}</span>
+          {showLastRun && (
             <span className="file-status status-ok">
               <span aria-hidden="true">✓</span> Parsing 완료
             </span>
@@ -115,7 +127,7 @@ export function FileLoadPage() {
         </div>
       )}
 
-      {state.phase === 'done' && <ParseSummary result={state.result} />}
+      {showLastRun && <ParseSummary result={run.result} />}
     </main>
   );
 }
