@@ -5,6 +5,7 @@ import { AppNav } from './components/AppNav';
 import type { LoadedRun } from './state/loadedRun';
 import { FileLoadPage } from './pages/FileLoadPage';
 import { OverviewPage } from './pages/OverviewPage';
+import { GraphsPage } from './pages/GraphsPage';
 
 function App() {
   // 파싱 결과는 App이 소유한다 — 탭을 오가도 같은 run을 재파싱 없이 공유
@@ -35,6 +36,8 @@ function App() {
 
       {view === 'load' || run === null ? (
         <FileLoadPage run={run} onLoaded={handleLoaded} />
+      ) : view === 'graphs' ? (
+        <GraphsPage run={run} />
       ) : (
         <OverviewPage run={run} />
       )}

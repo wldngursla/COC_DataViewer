@@ -341,3 +341,90 @@
 .tone-warning .stat-value {
   color: var(--warning);
 }
+
+/* ---------- graphs ---------- */
+
+.graphs-header {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.graphs-meta {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.signal-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 32px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.signal-group-label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.signal-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sig-toggle {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.sig-toggle:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.sig-toggle:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.sig-on {
+  background: var(--surface-2);
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.sig-unit {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.sig-on .sig-unit {
+  color: var(--accent);
+}
+
+.stacked-chart {
+  width: 100%;
+}
+
+.graphs-empty {
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--surface-1);
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+}

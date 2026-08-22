@@ -64,7 +64,12 @@ File → src/parser (Web Worker) → ParsedLog(columnar) → App state(LoadedRun
 - **File Loading 화면**: 파일 선택 버튼, Drag & Drop, 파일명/크기, 진행률 바, 성공/실패 처리,
   Parse Summary(record 카운트·무결성 통계)
 - **상단 네비게이션**: Overview / Graphs / Vehicle / Battery / Data Health
-  (Overview만 활성, 나머지는 disabled + "soon" 배지)
+  (Overview·Graphs 활성, 나머지는 disabled + "soon" 배지)
+- **Graphs 화면**: time-aligned stacked signal plot (ECharts 단일 인스턴스, 신호별 grid).
+  신호 10개(GPS Speed, Motor RPM, Acc X/Y/Z, Gyro Z, SOC, Voltage, Current, Power=V×I/1000 signed),
+  signal ON/OFF, zoom/pan/tooltip, 전 grid가 X 시간범위·axis pointer 공유(경과 시간 기준),
+  소스 없는 신호는 N/A, 소스 내 큰 timestamp 공백은 null break로 표시(interpolation 금지).
+  시리즈 생성은 `src/calculations/graphSeries.ts`, 차트는 `src/components/StackedSignalChart.tsx`
 - **Overview 화면**: run duration, total records, max GPS speed, max motor RPM,
   max 종/횡가속도, start/end SOC, battery voltage range, run metadata.
   데이터 없으면 **N/A + 사유 힌트** (추측값 표시 금지)
@@ -75,13 +80,11 @@ File → src/parser (Web Worker) → ParsedLog(columnar) → App state(LoadedRun
 
 REQUIREMENTS.md의 V1 범위 중 남은 것 (권장 순서):
 
-1. **Graphs 탭** — ECharts. 신호: GPS Speed, Motor RPM, Acc X/Y/Z, Yaw Rate, SOC, Voltage,
-   Current, Power. 필수: signal ON/OFF, zoom, pan, tooltip, synchronized time cursor
-2. **Battery 탭** — P = V×I, **누적 소비 에너지는 방전 구간만 적분(회생 제외 — 확정된 결정)**,
+1. **Battery 탭** — P = V×I, **누적 소비 에너지는 방전 구간만 적분(회생 제외 — 확정된 결정)**,
    GPS haversine 주행거리(km), 전비 = km / kWh
-3. **Data Health 탭** — source별 record count, 평균 샘플링 주파수, 최대 timestamp gap,
+2. **Data Health 탭** — source별 record count, 평균 샘플링 주파수, 최대 timestamp gap,
    큰 gap 횟수, Normal/Warning/Missing 표시
-4. **Vehicle 탭** — Wheel Speed / Steering Response는 보류(6절). 보류 해제 전에는 구현하지 마라
+3. **Vehicle 탭** — Wheel Speed / Steering Response는 보류(6절). 보류 해제 전에는 구현하지 마라
 
 V1 제외 목록(REQUIREMENTS.md 하단)의 기능은 요청 없이 절대 추가하지 마라.
 
