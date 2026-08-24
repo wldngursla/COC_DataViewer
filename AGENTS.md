@@ -64,7 +64,7 @@ File → src/parser (Web Worker) → ParsedLog(columnar) → App state(LoadedRun
 - **File Loading 화면**: 파일 선택 버튼, Drag & Drop, 파일명/크기, 진행률 바, 성공/실패 처리,
   Parse Summary(record 카운트·무결성 통계)
 - **상단 네비게이션**: Overview / Graphs / Vehicle / Battery / Data Health
-  (Overview·Graphs·Data Health 활성, 나머지는 disabled + "soon" 배지)
+  (Overview·Graphs·Battery·Data Health 활성, Vehicle은 disabled + "soon" 배지)
 - **Graphs 화면**: time-aligned stacked signal plot (ECharts 단일 인스턴스, 신호별 grid).
   신호 10개(GPS Speed, Motor RPM, Acc X/Y/Z, Gyro Z, SOC, Voltage, Current, Power=V×I/1000 signed),
   signal ON/OFF, zoom/pan/tooltip, 전 grid가 X 시간범위·axis pointer 공유(경과 시간 기준),
@@ -76,16 +76,17 @@ File → src/parser (Web Worker) → ParsedLog(columnar) → App state(LoadedRun
 - **Data Health 화면**: source별 record count·first/last timestamp·평균 Hz·median interval·최대 gap·
   large gap count·상태, parser stats 기반 file integrity. Large gap은 로그 내부 cadence heuristic이며
   NORMAL은 센서 정상 판정이 아니라 구조적 timestamp anomaly가 없다는 의미
-- **테스트**: Vitest 63건 (parser/checksum/decoder/calculations).
+- **Battery 화면**: Daly BMS SOC·전압·peak 방전 전류/전력, 실제 timestamp 기반 방전 에너지 적분,
+  GPS haversine 주행거리, 전비(km/kWh). 충전·회생 구간은 consumed energy에서 제외
+- **테스트**: Vitest 75건 (parser/checksum/decoder/calculations).
   합성 레코드 생성기는 `src/parser/__tests__/fixtures.ts` — 새 테스트에 재사용하라.
 
 ## 5. 미구현 기능과 다음 개발 순서
 
 REQUIREMENTS.md의 V1 범위 중 남은 것 (권장 순서):
 
-1. **Battery 탭** — P = V×I, **누적 소비 에너지는 방전 구간만 적분(회생 제외 — 확정된 결정)**,
-   GPS haversine 주행거리(km), 전비 = km / kWh
-2. **Vehicle 탭** — Wheel Speed / Steering Response는 보류(6절). 보류 해제 전에는 구현하지 마라
+1. **Vehicle 탭** — Wheel Speed / Steering Response 센서 사양 확정 대기(6절).
+   보류 해제 전에는 구현하지 마라
 
 V1 제외 목록(REQUIREMENTS.md 하단)의 기능은 요청 없이 절대 추가하지 마라.
 

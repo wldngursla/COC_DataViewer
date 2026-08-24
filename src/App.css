@@ -429,6 +429,56 @@
   border-radius: 6px;
 }
 
+/* ---------- battery ---------- */
+
+.battery-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.battery-header h1 {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.battery-header p {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.battery-page .summary-section + .summary-section {
+  margin-top: 28px;
+}
+
+.battery-kpi-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.battery-kpi-grid .stat-tile {
+  border-top-color: var(--accent);
+}
+
+.battery-detail-grid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.battery-note {
+  margin: 9px 2px 0;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.battery-note code {
+  color: var(--text-secondary);
+  font-family: var(--mono);
+}
+
 /* ---------- data health ---------- */
 
 .health-header {
@@ -587,6 +637,7 @@
 }
 
 @media (max-width: 720px) {
+  .battery-header,
   .health-header,
   .health-section-heading {
     align-items: flex-start;
@@ -595,6 +646,10 @@
   }
 
   .health-overall-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .battery-kpi-grid {
     grid-template-columns: 1fr;
   }
 }

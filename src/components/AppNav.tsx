@@ -15,7 +15,7 @@ const TABS: NavTab[] = [
   { id: 'overview', label: 'Overview', comingSoon: false },
   { id: 'graphs', label: 'Graphs', comingSoon: false },
   { id: 'vehicle', label: 'Vehicle', comingSoon: true },
-  { id: 'battery', label: 'Battery', comingSoon: true },
+  { id: 'battery', label: 'Battery', comingSoon: false },
   { id: 'health', label: 'Data Health', comingSoon: false },
 ];
 
