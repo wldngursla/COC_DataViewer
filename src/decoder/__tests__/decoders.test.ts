@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   decodeMotorRpm,
+  decodeAccelerator,
   decodeEzBusVoltage,
   decodeEzBusCurrent,
   decodeBmsVoltage,
@@ -58,6 +59,12 @@ describe('CAN decoder — additional signals', () => {
     expect(CAN_ID_EZ_MSG1).toBe(0x180117ef);
     expect(CAN_ID_EZ_MSG2).toBe(0x180217ef);
     expect(CAN_ID_DALY_90).toBe(0x18904001);
+  });
+});
+
+describe('Accelerator decoder', () => {
+  it('uses EZkontrol Msg2 byte 2 as percent', () => {
+    expect(decodeAccelerator(frame({ 0: 99, 2: 73, 7: 88 }))).toBe(73);
   });
 });
 

@@ -27,6 +27,14 @@ const ezRpm = (ts: number, rpm: number) => {
   });
 };
 
+const ezAccelerator = (ts: number, percent: number) =>
+  canRecord({
+    timestamp: ts,
+    id: 0x180217ef,
+    extended: true,
+    data: [0, 0, percent, 0, 0, 0, 0, 0],
+  });
+
 // Daly 0x18904001: V = BE(B0,B1)*0.1, A = (BE(B4,B5)-30000)*0.1, SOC = BE(B6,B7)*0.1
 const daly90 = (ts: number, voltage: number, currentA: number, soc: number) => {
   const vRaw = Math.round(voltage * 10);
@@ -41,9 +49,9 @@ const daly90 = (ts: number, voltage: number, currentA: number, soc: number) => {
 };
 
 describe('createGraphSeriesProvider', () => {
-  it('defines exactly the 10 documented signals', () => {
+  it('defines exactly the 11 documented signals', () => {
     expect(GRAPH_SIGNALS.map((d) => d.id)).toEqual([
-      'gpsSpeed', 'motorRpm', 'accX', 'accY', 'accZ', 'yawRate', 'soc', 'voltage', 'current', 'power',
+      'gpsSpeed', 'accelerator', 'motorRpm', 'accX', 'accY', 'accZ', 'yawRate', 'soc', 'voltage', 'current', 'power',
     ]);
   });
 
@@ -67,6 +75,16 @@ describe('createGraphSeriesProvider', () => {
     const s = createGraphSeriesProvider(log).get('motorRpm');
     expect(s.points.map((pt) => pt[1])).toEqual([1400, 4500]);
     expect(s.points.map((pt) => pt[0])).toEqual([0.5, 1.5]);
+  });
+
+  it('Accelerator Pedal: EZkontrol Msg2 byte 2 as percent', () => {
+    const log = parseLog(buildLog([boot(), ezAccelerator(500, 12), ezAccelerator(1500, 84)]));
+    const s = createGraphSeriesProvider(log).get('accelerator');
+    expect(s.available).toBe(true);
+    expect(s.points).toEqual([
+      [0.5, 12],
+      [1.5, 84],
+    ]);
   });
 
   it('IMU: raw sensor axes in g, gyro Z in deg/s', () => {
@@ -96,6 +114,7 @@ describe('createGraphSeriesProvider', () => {
     expect(p.get('gpsSpeed')).toMatchObject({ available: false, points: [] });
     expect(p.isAvailable('soc')).toBe(false);
     expect(p.get('power')).toMatchObject({ available: false, points: [] });
+    expect(p.get('accelerator')).toMatchObject({ available: false, points: [] });
     expect(p.isAvailable('accX')).toBe(true);
   });
 

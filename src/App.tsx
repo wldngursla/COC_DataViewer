@@ -8,15 +8,23 @@ import { OverviewPage } from './pages/OverviewPage';
 import { GraphsPage } from './pages/GraphsPage';
 import { DataHealthPage } from './pages/DataHealthPage';
 import { BatteryPage } from './pages/BatteryPage';
+import { VehiclePage } from './pages/VehiclePage';
 
 function App() {
   // 파싱 결과는 App이 소유한다 — 탭을 오가도 같은 run을 재파싱 없이 공유
   const [run, setRun] = useState<LoadedRun | null>(null);
   const [view, setView] = useState<ViewId>('load');
+  const [selectedVehicleTimestampMs, setSelectedVehicleTimestampMs] = useState<number | null>(null);
 
   const handleLoaded = (loaded: LoadedRun) => {
     setRun(loaded);
+    setSelectedVehicleTimestampMs(null);
     setView('overview');
+  };
+
+  const handleViewInGraphs = (timestampMs: number) => {
+    setSelectedVehicleTimestampMs(timestampMs);
+    setView('graphs');
   };
 
   return (
@@ -39,9 +47,20 @@ function App() {
       {view === 'load' || run === null ? (
         <FileLoadPage run={run} onLoaded={handleLoaded} />
       ) : view === 'graphs' ? (
-        <GraphsPage run={run} />
+        <GraphsPage
+          run={run}
+          selectedTimestampMs={selectedVehicleTimestampMs}
+          onSelectTimestamp={setSelectedVehicleTimestampMs}
+        />
       ) : view === 'battery' ? (
         <BatteryPage run={run} />
+      ) : view === 'vehicle' ? (
+        <VehiclePage
+          run={run}
+          selectedTimestampMs={selectedVehicleTimestampMs}
+          onSelectTimestamp={setSelectedVehicleTimestampMs}
+          onViewInGraphs={handleViewInGraphs}
+        />
       ) : view === 'health' ? (
         <DataHealthPage run={run} />
       ) : (

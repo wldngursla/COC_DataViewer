@@ -22,6 +22,7 @@ echarts.use([LineChart, GridComponent, TooltipComponent, TitleComponent, DataZoo
 /** 신호별 고정 색 (dataviz dark palette steps) — 순서가 아니라 신호 정체성에 고정 */
 const SIGNAL_COLOR: Record<SignalId, string> = {
   gpsSpeed: '#3987e5',
+  accelerator: '#0ca30c',
   motorRpm: '#d95926',
   current: '#199e70',
   accX: '#c98500',
@@ -36,6 +37,7 @@ const SIGNAL_COLOR: Record<SignalId, string> = {
 /** tooltip 소수 자릿수 */
 const SIGNAL_DECIMALS: Record<SignalId, number> = {
   gpsSpeed: 1,
+  accelerator: 0,
   motorRpm: 0,
   accX: 3,
   accY: 3,
@@ -181,21 +183,46 @@ function buildOption(seriesList: GraphSeries[], durationSec: number): echarts.EC
 interface StackedSignalChartProps {
   seriesList: GraphSeries[];
   durationSec: number;
+  selectedTimeSec: number;
+  onSelectTimeSec: (timeSec: number) => void;
 }
 
-export function StackedSignalChart({ seriesList, durationSec }: StackedSignalChartProps) {
+interface AxisPointerEvent {
+  axesInfo?: Array<{ value?: number | string }>;
+  currTrigger?: string;
+}
+
+export function StackedSignalChart({
+  seriesList,
+  durationSec,
+  selectedTimeSec,
+  onSelectTimeSec,
+}: StackedSignalChartProps) {
   const divRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<echarts.ECharts | null>(null);
+  const onSelectTimeSecRef = useRef(onSelectTimeSec);
+
+  useEffect(() => {
+    onSelectTimeSecRef.current = onSelectTimeSec;
+  }, [onSelectTimeSec]);
 
   useEffect(() => {
     const div = divRef.current;
     if (div === null) return;
     const chart = echarts.init(div);
     chartRef.current = chart;
+    const handleAxisPointer = (payload: unknown) => {
+      const event = payload as AxisPointerEvent;
+      if (event.currTrigger !== 'mousemove' && event.currTrigger !== 'click') return;
+      const value = Number(event.axesInfo?.[0]?.value);
+      if (Number.isFinite(value)) onSelectTimeSecRef.current(value);
+    };
+    chart.on('updateAxisPointer', handleAxisPointer);
     const observer = new ResizeObserver(() => chart.resize());
     observer.observe(div);
     return () => {
       observer.disconnect();
+      chart.off('updateAxisPointer', handleAxisPointer);
       chart.dispose();
       chartRef.current = null;
     };
@@ -206,6 +233,16 @@ export function StackedSignalChart({ seriesList, durationSec }: StackedSignalCha
     chartRef.current?.setOption(buildOption(seriesList, durationSec), { notMerge: true });
     chartRef.current?.resize();
   }, [seriesList, durationSec]);
+
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (chart === null || seriesList.length === 0) return;
+    const x = Number(chart.convertToPixel({ xAxisIndex: 0 }, selectedTimeSec));
+    if (!Number.isFinite(x)) return;
+    const y = TOP_PAD + ROW_HEIGHT / 2;
+    chart.dispatchAction({ type: 'updateAxisPointer', x, y });
+    chart.dispatchAction({ type: 'showTip', x, y });
+  }, [selectedTimeSec, seriesList]);
 
   return (
     <div

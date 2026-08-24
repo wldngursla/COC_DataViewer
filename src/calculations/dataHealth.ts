@@ -68,6 +68,19 @@ function median(sortedValues: Float64Array): number {
     : (sortedValues[middle - 1] + sortedValues[middle]) / 2;
 }
 
+/** Median of consecutive intervals after timestamp sorting, or null when unavailable. */
+export function computeMedianIntervalMs(rawTimestamps: ArrayLike<number>): number | null {
+  if (rawTimestamps.length < 2) return null;
+  const timestamps = Float64Array.from(rawTimestamps);
+  timestamps.sort();
+  const intervals = new Float64Array(timestamps.length - 1);
+  for (let index = 1; index < timestamps.length; index++) {
+    intervals[index - 1] = timestamps[index] - timestamps[index - 1];
+  }
+  intervals.sort();
+  return median(intervals);
+}
+
 function analyzeSource(
   source: SourceDefinition,
   rawTimestamps: ArrayLike<number>,
@@ -124,7 +137,11 @@ function analyzeSource(
   }
 
   intervals.sort();
-  base.medianIntervalMs = median(intervals);
+  base.medianIntervalMs = computeMedianIntervalMs(timestamps);
+  if (base.medianIntervalMs === null) {
+    base.status = 'N/A';
+    return base;
+  }
   base.maximumGapMs = maximumGapMs;
   base.largeGapThresholdMs = Math.max(5 * base.medianIntervalMs, 1000);
 

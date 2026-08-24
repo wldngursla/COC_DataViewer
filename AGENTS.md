@@ -45,10 +45,10 @@ File → src/parser (Web Worker) → ParsedLog(columnar) → App state(LoadedRun
 |---|---|
 | `src/parser/` | binary `.log` 파싱. React 의존 0. `types.ts`(레코드 타입·columnar 시리즈·ParseStats), `checksum.ts`, `parseLog.ts`(2-pass: 검증·카운트 → 디코드; 손상 레코드는 버리고 통계 집계), `worker.ts`(Web Worker 엔트리), `parseLogFile.ts`(**UI가 쓰는 유일한 파서 API** — Promise + 진행률 콜백) |
 | `src/decoder/` | raw → 물리 단위. `gps.ts`(ddmm×1e5 → 십진도, haversine), `imu.ts`(±8g/±500dps 스케일, `IMU_AXIS_MAP`), `can.ts`(문서화된 신호만: EZkontrol=LE, Daly BMS=BE, CAN ID 상수) |
-| `src/calculations/` | 파생 차량 값 (순수 함수, React 금지). `logSummary.ts`(run duration), `overview.ts`(max speed/RPM/가속도, BMS SOC·전압) |
+| `src/calculations/` | 파생 차량 값 (순수 함수, React 금지). Overview/Graphs/Data Health/Battery/Vehicle 계산 모듈 |
 | `src/state/` | `loadedRun.ts` — 파싱 결과 1개를 App이 소유하고 모든 페이지가 prop으로 공유 |
 | `src/components/` | 재사용 UI 조각 (StatTile, FileDropZone, ParseSummary, AppNav) |
-| `src/pages/` | 사용자 화면 (FileLoadPage, OverviewPage) |
+| `src/pages/` | File Loader와 5개 분석 화면 (Overview/Graphs/Vehicle/Battery/Data Health) |
 | `src/ui/` | 표시용 포맷터 (`format.ts`) |
 
 성능상 중요: 파서 출력은 record 객체 배열이 아니라 **type별 columnar typed array**다
@@ -64,11 +64,14 @@ File → src/parser (Web Worker) → ParsedLog(columnar) → App state(LoadedRun
 - **File Loading 화면**: 파일 선택 버튼, Drag & Drop, 파일명/크기, 진행률 바, 성공/실패 처리,
   Parse Summary(record 카운트·무결성 통계)
 - **상단 네비게이션**: Overview / Graphs / Vehicle / Battery / Data Health
-  (Overview·Graphs·Battery·Data Health 활성, Vehicle은 disabled + "soon" 배지)
+  5개 분석 탭 모두 활성
 - **Graphs 화면**: time-aligned stacked signal plot (ECharts 단일 인스턴스, 신호별 grid).
-  신호 10개(GPS Speed, Motor RPM, Acc X/Y/Z, Gyro Z, SOC, Voltage, Current, Power=V×I/1000 signed),
+  신호 11개(GPS Speed, Accelerator Pedal, Motor RPM, Acc X/Y/Z, Gyro Z, SOC, Voltage, Current,
+  Power=V×I/1000 signed),
   signal ON/OFF, zoom/pan/tooltip, 전 grid가 X 시간범위·axis pointer 공유(경과 시간 기준),
   소스 없는 신호는 N/A, 소스 내 큰 timestamp 공백은 null break로 표시(interpolation 금지).
+  GPS Track Map과 graph/map 양방향 시간 선택, 0.5×/1×/2× playback, nearest-sample Current Values가
+  하나의 selected time으로 동기화된다.
   시리즈 생성은 `src/calculations/graphSeries.ts`, 차트는 `src/components/StackedSignalChart.tsx`
 - **Overview 화면**: run duration, total records, max GPS speed, max motor RPM,
   max 종/횡가속도, start/end SOC, battery voltage range, run metadata.
@@ -78,15 +81,17 @@ File → src/parser (Web Worker) → ParsedLog(columnar) → App state(LoadedRun
   NORMAL은 센서 정상 판정이 아니라 구조적 timestamp anomaly가 없다는 의미
 - **Battery 화면**: Daly BMS SOC·전압·peak 방전 전류/전력, 실제 timestamp 기반 방전 에너지 적분,
   GPS haversine 주행거리, 전비(km/kWh). 충전·회생 구간은 consumed energy에서 제외
-- **테스트**: Vitest 75건 (parser/checksum/decoder/calculations).
+- **Vehicle 화면**: max GPS speed, max motor RPM, IMU sensor-axis Acc X/Y/Z·Gyro Z 절대 피크,
+  GPS speed-colored Track Map과 위치 선택 기반 nearest-timestamp telemetry 조회.
+  Wheel Speed와 Steering Response는 필요한 설정을 명시하고 N/A로 유지
+- **테스트**: Vitest 104건 (parser/checksum/decoder/calculations).
   합성 레코드 생성기는 `src/parser/__tests__/fixtures.ts` — 새 테스트에 재사용하라.
 
-## 5. 미구현 기능과 다음 개발 순서
+## 5. V1 완료 상태
 
-REQUIREMENTS.md의 V1 범위 중 남은 것 (권장 순서):
-
-1. **Vehicle 탭** — Wheel Speed / Steering Response 센서 사양 확정 대기(6절).
-   보류 해제 전에는 구현하지 마라
+V1의 File Loader / Overview / Graphs / Vehicle / Battery / Data Health 화면이 구현되었다.
+Vehicle의 Wheel Speed / Steering Response 수치 계산은 센서 사양 확정 대기 상태이며(6절),
+보류 해제 전에는 구현하지 마라.
 
 V1 제외 목록(REQUIREMENTS.md 하단)의 기능은 요청 없이 절대 추가하지 마라.
 
@@ -97,7 +102,10 @@ V1 제외 목록(REQUIREMENTS.md 하단)의 기능은 요청 없이 절대 추�
   ③ 주행 중 DIGITAL pulse가 온전히 기록되는지 실측 여부.
   DIGITAL 레코드는 GPIO **레벨 스냅샷(0/1)** + 10ms 디바운스라 주파수 역산이 필요하다.
 - **Steering Angle / Steering Response**: 확정되지 않은 것 —
-  ① 센서가 연결된 **channel**(analog ain 번호), ② **calibration formula**(전압 → 조향각).
+  ① 센서가 연결된 **channel**(analog ain 번호), ② center/zero 기준,
+  ③ **calibration formula**(전압 → 조향각)와 angle range.
+- **IMU 차량축 해석**: 장착 방향과 sensor axis ↔ 차량 종/횡/수직축 매핑이 확정되지 않았다.
+  Vehicle 화면에서는 sensor X/Y/Z로만 표시한다.
 
 보류 중에도 raw DIGITAL/ANALOG 레코드 파싱은 유지한다 (이미 파서에 구현되어 있음).
 

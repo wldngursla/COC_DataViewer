@@ -30,8 +30,8 @@ function sampleLog(): ArrayBuffer {
       longitudeRaw: 1270412345, // 12704.12345 E
       latDir: 'N',
       lonDir: 'E',
-      speedRaw: 4523, // 45.23 km/h
-      courseRaw: 18050, // 180.50 deg
+      speedRaw: 9273, // 92.73 km/h
+      courseRaw: 28545, // 285.45 deg
     }),
     analogRecord({ timestamp: 210, ain: [100, -200, 300, -400, 500, -600, 700, -32768] }),
     digitalRecord({ timestamp: 220, din: [1, 0, 1, 0] }),
@@ -74,8 +74,8 @@ describe('parseLog', () => {
     expect(log.gps.longitudeRaw[0]).toBe(1270412345);
     expect(String.fromCharCode(log.gps.latDir[0])).toBe('N');
     expect(String.fromCharCode(log.gps.lonDir[0])).toBe('E');
-    expect(log.gps.speedRaw[0]).toBe(4523);
-    expect(log.gps.courseRaw[0]).toBe(18050);
+    expect(log.gps.speedRaw[0]).toBe(9273);
+    expect(log.gps.courseRaw[0]).toBe(28545);
 
     // ANALOG
     expect(log.analog.count).toBe(1);
@@ -102,6 +102,24 @@ describe('parseLog', () => {
 
     expect(log.stats.byType[LogType.Can]).toBe(1);
     expect(log.stats.byType[LogType.Gyroscope]).toBe(1);
+  });
+
+  it('writes GPS reserved bytes, speed, and course at protocol.h offsets', () => {
+    const record = gpsRecord({
+      timestamp: 90_000,
+      latitudeRaw: 373027514,
+      longitudeRaw: 1265720439,
+      latDir: 'N',
+      lonDir: 'E',
+      speedRaw: 9273,
+      courseRaw: 28545,
+    });
+
+    expect([...record.subarray(18, 24)]).toEqual([
+      0x00, 0x00, // _reserved[2]
+      0x39, 0x24, // speedRaw 9273, little-endian
+      0x81, 0x6f, // courseRaw 28545, little-endian
+    ]);
   });
 
   it('drops corrupt records but keeps parsing at the next 24-byte boundary', () => {

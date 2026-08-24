@@ -1,7 +1,7 @@
 /**
  * Graphs 탭용 신호 시리즈 생성 — ParsedLog → 기존 decoder → [elapsedSec, value] 점열.
  *
- * - 지원 신호는 문서화된 decoder가 있는 10개뿐이다 (새 CAN 신호 추가 금지).
+ * - 지원 신호는 문서화된 decoder가 있는 11개뿐이다 (새 CAN 신호 추가 금지).
  * - X축은 run 시작(첫 레코드) 기준 경과 시간[초]. epoch time을 주축으로 쓰지 않는다.
  * - 소스가 없으면 available:false — 0 채움/interpolation/가짜 데이터 금지.
  * - 소스 내부의 큰 timestamp 공백에는 null 점을 삽입해 선이 공백을 가로질러
@@ -13,7 +13,9 @@ import type { ParsedLog, CanRawSeries } from '../parser/types';
 import { CAN_DATA_BYTES } from '../parser/types';
 import {
   CAN_ID_EZ_MSG1,
+  CAN_ID_EZ_MSG2,
   CAN_ID_DALY_90,
+  decodeAccelerator,
   decodeMotorRpm,
   decodeBmsVoltage,
   decodeBmsCurrent,
@@ -25,6 +27,7 @@ import { computeTimeRange } from './logSummary';
 
 export type SignalId =
   | 'gpsSpeed'
+  | 'accelerator'
   | 'motorRpm'
   | 'accX'
   | 'accY'
@@ -49,6 +52,7 @@ export interface GraphSignalDef {
 /** 고정 표시 순서. IMU는 실측 확정 전이므로 센서 축 기준으로 표기한다. */
 export const GRAPH_SIGNALS: readonly GraphSignalDef[] = [
   { id: 'gpsSpeed', label: 'GPS Speed', unit: 'km/h', group: 'Vehicle' },
+  { id: 'accelerator', label: 'Accelerator Pedal', unit: '%', group: 'Vehicle', note: 'EZkontrol 0x180217EF byte 2' },
   { id: 'motorRpm', label: 'Motor RPM', unit: 'rpm', group: 'Vehicle', note: 'EZkontrol 0x180117EF' },
   { id: 'accX', label: 'Acceleration X', unit: 'g', group: 'IMU', note: '센서 축 기준' },
   { id: 'accY', label: 'Acceleration Y', unit: 'g', group: 'IMU', note: '센서 축 기준' },
@@ -119,15 +123,18 @@ export function createGraphSeriesProvider(result: ParsedLog): GraphSeriesProvide
 
   // 소스 존재 여부 (가용성 표시용 — 시리즈 생성 없이 1회 스캔)
   let hasEz = false;
+  let hasAccelerator = false;
   let hasDaly = false;
   const can = result.can;
-  for (let i = 0; i < can.count && !(hasEz && hasDaly); i++) {
+  for (let i = 0; i < can.count && !(hasEz && hasAccelerator && hasDaly); i++) {
     if (!hasEz && isDecodableFrame(can, i, CAN_ID_EZ_MSG1)) hasEz = true;
+    if (!hasAccelerator && isDecodableFrame(can, i, CAN_ID_EZ_MSG2)) hasAccelerator = true;
     if (!hasDaly && isDecodableFrame(can, i, CAN_ID_DALY_90)) hasDaly = true;
   }
 
   const availability: Record<SignalId, boolean> = {
     gpsSpeed: result.gps.count > 0,
+    accelerator: hasAccelerator,
     motorRpm: hasEz,
     accX: result.gyro.count > 0,
     accY: result.gyro.count > 0,
@@ -178,6 +185,16 @@ export function createGraphSeriesProvider(result: ParsedLog): GraphSeriesProvide
           if (!isDecodableFrame(can, i, CAN_ID_EZ_MSG1)) continue;
           t.push(can.timestamp[i]);
           v.push(decodeMotorRpm(can.data.subarray(i * CAN_DATA_BYTES, (i + 1) * CAN_DATA_BYTES)));
+        }
+        return toPoints(t, v, t0Ms);
+      }
+      case 'accelerator': {
+        const t: number[] = [];
+        const v: number[] = [];
+        for (let i = 0; i < can.count; i++) {
+          if (!isDecodableFrame(can, i, CAN_ID_EZ_MSG2)) continue;
+          t.push(can.timestamp[i]);
+          v.push(decodeAccelerator(can.data.subarray(i * CAN_DATA_BYTES, (i + 1) * CAN_DATA_BYTES)));
         }
         return toPoints(t, v, t0Ms);
       }

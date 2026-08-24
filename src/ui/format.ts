@@ -25,6 +25,19 @@ export function formatDuration(ms: number): string {
   return h > 0 ? `${h}:${mm}:${ss}` : `${m}:${ss}`;
 }
 
+/** milliseconds → "m:ss.mmm" (or "h:mm:ss.mmm" at one hour and above) */
+export function formatElapsedTime(ms: number): string {
+  const totalMs = Math.max(0, Math.round(ms));
+  const h = Math.floor(totalMs / 3_600_000);
+  const m = Math.floor((totalMs % 3_600_000) / 60_000);
+  const s = Math.floor((totalMs % 60_000) / 1000);
+  const milliseconds = totalMs % 1000;
+  const mm = h > 0 ? String(m).padStart(2, '0') : String(m);
+  const ss = String(s).padStart(2, '0');
+  const mmm = String(milliseconds).padStart(3, '0');
+  return h > 0 ? `${h}:${mm}:${ss}.${mmm}` : `${mm}:${ss}.${mmm}`;
+}
+
 /** thousands separators for counts */
 export function formatCount(n: number): string {
   return n.toLocaleString('en-US');
