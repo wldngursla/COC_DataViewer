@@ -1,7 +1,6 @@
 /**
- * Top navigation. Only Overview is functional in this stage — the remaining
- * tabs are visible but disabled ("Coming soon") so the V1 information
- * architecture is already in place.
+ * Top navigation for implemented analysis pages. Deferred V1 pages stay
+ * visible but disabled so the information architecture remains clear.
  */
 
 export type ViewId = 'load' | 'overview' | 'graphs' | 'vehicle' | 'battery' | 'health';
@@ -17,7 +16,7 @@ const TABS: NavTab[] = [
   { id: 'graphs', label: 'Graphs', comingSoon: false },
   { id: 'vehicle', label: 'Vehicle', comingSoon: true },
   { id: 'battery', label: 'Battery', comingSoon: true },
-  { id: 'health', label: 'Data Health', comingSoon: true },
+  { id: 'health', label: 'Data Health', comingSoon: false },
 ];
 
 interface AppNavProps {
