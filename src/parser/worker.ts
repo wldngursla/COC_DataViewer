@@ -45,7 +45,11 @@ function collectTransferables(result: ParsedLog): Transferable[] {
   add(result.analog.timestamp);
   result.analog.ain.forEach(add);
   add(result.digital.timestamp);
-  result.digital.din.forEach(add);
+  if (result.digital.format === 'wheel-speed-kmh') {
+    result.digital.wheelSpeedKmh.forEach(add);
+  } else {
+    result.digital.din.forEach(add);
+  }
   add(result.gyro.timestamp);
   add(result.gyro.accelX);
   add(result.gyro.accelY);

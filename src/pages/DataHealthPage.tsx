@@ -75,7 +75,7 @@ export function DataHealthPage({ run }: DataHealthPageProps) {
           <StatTile
             label="Sources present"
             value={`${health.presentSources} / ${health.totalSources}`}
-            hint="CAN, GPS, IMU, Analog, Digital, System/User Event"
+            hint="CAN, GPS, IMU, Analog, Wheel/Digital, System/User Event"
           />
         </div>
       </section>

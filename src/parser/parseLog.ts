@@ -15,6 +15,7 @@ import {
   RECORD_SIZE,
   LOG_MAGIC,
   PROTOCOL_VERSION,
+  LogFeature,
   LogType,
   ANALOG_CHANNELS,
   DIGITAL_CHANNELS,
@@ -137,6 +138,11 @@ export function parseLog(buffer: ArrayBuffer, onProgress?: ProgressCallback): Pa
     }
   }
 
+  const firstBootFeatureFlags =
+    firstBootSlot === -1 ? 0 : bytes[firstBootSlot * RECORD_SIZE + 9];
+  const digitalUsesWheelSpeed =
+    (firstBootFeatureFlags & LogFeature.DigitalWheelSpeedFloat) !== 0;
+
   /* ---------------- allocate columns ---------------- */
 
   const can: CanRawSeries = {
@@ -163,11 +169,25 @@ export function parseLog(buffer: ArrayBuffer, onProgress?: ProgressCallback): Pa
     timestamp: new Uint32Array(byType[LogType.Analog]),
     ain: Array.from({ length: ANALOG_CHANNELS }, () => new Int16Array(byType[LogType.Analog])),
   };
-  const digital: DigitalRawSeries = {
-    count: 0,
-    timestamp: new Uint32Array(byType[LogType.Digital]),
-    din: Array.from({ length: DIGITAL_CHANNELS }, () => new Uint32Array(byType[LogType.Digital])),
-  };
+  const digital: DigitalRawSeries = digitalUsesWheelSpeed
+    ? {
+        count: 0,
+        timestamp: new Uint32Array(byType[LogType.Digital]),
+        format: 'wheel-speed-kmh',
+        wheelSpeedKmh: Array.from(
+          { length: DIGITAL_CHANNELS },
+          () => new Float32Array(byType[LogType.Digital]),
+        ),
+      }
+    : {
+        count: 0,
+        timestamp: new Uint32Array(byType[LogType.Digital]),
+        format: 'gpio-level',
+        din: Array.from(
+          { length: DIGITAL_CHANNELS },
+          () => new Uint32Array(byType[LogType.Digital]),
+        ),
+      };
   const gyro: GyroRawSeries = {
     count: 0,
     timestamp: new Uint32Array(byType[LogType.Gyroscope]),
@@ -204,6 +224,7 @@ export function parseLog(buffer: ArrayBuffer, onProgress?: ProgressCallback): Pa
           boot = {
             timestamp: ts,
             protocolVersion: view.getUint8(p),
+            featureFlags: view.getUint8(p + 1),
             mac: formatMac(view, p + 2),
             // epoch seconds fit comfortably in a double
             bootTime: Number(view.getBigUint64(p + 8, true)),
@@ -243,8 +264,14 @@ export function parseLog(buffer: ArrayBuffer, onProgress?: ProgressCallback): Pa
       case LogType.Digital: {
         const i = digital.count++;
         digital.timestamp[i] = ts;
-        for (let c = 0; c < DIGITAL_CHANNELS; c++) {
-          digital.din[c][i] = view.getUint32(p + c * 4, true);
+        if (digital.format === 'wheel-speed-kmh') {
+          for (let c = 0; c < DIGITAL_CHANNELS; c++) {
+            digital.wheelSpeedKmh[c][i] = view.getFloat32(p + c * 4, true);
+          }
+        } else {
+          for (let c = 0; c < DIGITAL_CHANNELS; c++) {
+            digital.din[c][i] = view.getUint32(p + c * 4, true);
+          }
         }
         break;
       }

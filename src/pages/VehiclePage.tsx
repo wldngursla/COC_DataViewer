@@ -1,6 +1,6 @@
 /**
- * Vehicle Analysis summarizes measurements that are currently supported and
- * keeps blocked wheel/steering work visible without inventing calibration.
+ * Vehicle Analysis summarizes confirmed measurements. Newer feature-flagged
+ * logs carry firmware-calculated wheel speed; steering remains uncalibrated.
  */
 
 import { useCallback, useMemo } from 'react';
@@ -68,6 +68,7 @@ export function VehiclePage({
   const gpsMissing = analysis.maxGpsSpeedKmh === null;
   const motorMissing = analysis.maxMotorRpm === null;
   const imuMissing = analysis.imu === null;
+  const wheelsMissing = analysis.wheels === null;
 
   return (
     <main className="page vehicle-page">
@@ -111,6 +112,10 @@ export function VehiclePage({
                 <div><dt>Latitude</dt><dd>{selectedTelemetry!.point.latitudeDeg.toFixed(6)}°</dd></div>
                 <div><dt>Longitude</dt><dd>{selectedTelemetry!.point.longitudeDeg.toFixed(6)}°</dd></div>
                 <div><dt>GPS Speed</dt><dd>{formatMetric(selectedTelemetry!.point.speedKmh, 1, 'km/h')}</dd></div>
+                <div><dt>Wheel FL</dt><dd>{formatMetric(selectedTelemetry!.wheelSpeedKmh?.fl ?? null, 1, 'km/h')}</dd></div>
+                <div><dt>Wheel FR</dt><dd>{formatMetric(selectedTelemetry!.wheelSpeedKmh?.fr ?? null, 1, 'km/h')}</dd></div>
+                <div><dt>Wheel RL</dt><dd>{formatMetric(selectedTelemetry!.wheelSpeedKmh?.rl ?? null, 1, 'km/h')}</dd></div>
+                <div><dt>Wheel RR</dt><dd>{formatMetric(selectedTelemetry!.wheelSpeedKmh?.rr ?? null, 1, 'km/h')}</dd></div>
                 <div><dt>Motor RPM</dt><dd>{formatMetric(selectedTelemetry!.motorRpm, 0, 'rpm')}</dd></div>
                 <div><dt>Acceleration X</dt><dd>{formatMetric(selectedTelemetry!.accelerationXG, 2, 'g')}</dd></div>
                 <div><dt>Acceleration Y</dt><dd>{formatMetric(selectedTelemetry!.accelerationYG, 2, 'g')}</dd></div>
@@ -151,6 +156,19 @@ export function VehiclePage({
             value={formatMetric(analysis.maxMotorRpm, 0, 'rpm')}
             hint={motorMissing ? 'EZkontrol 0x180117EF frame 없음' : 'EZkontrol 0x180117EF'}
           />
+          {(['FL', 'FR', 'RL', 'RR'] as const).map((wheel, index) => (
+            <StatTile
+              key={wheel}
+              label={`Max wheel ${wheel}`}
+              value={formatMetric(analysis.wheels?.maximumKmh[index] ?? null, 1, 'km/h')}
+              hint={wheelsMissing ? 'wheel-speed feature 또는 record 없음' : 'firmware-calculated float32'}
+            />
+          ))}
+          <StatTile
+            label="Max 4-wheel average"
+            value={formatMetric(analysis.wheels?.maximumFourWheelAverageKmh ?? null, 1, 'km/h')}
+            hint={wheelsMissing ? 'wheel-speed feature 또는 record 없음' : '네 저장 필드의 산술평균'}
+          />
           <StatTile
             label="Peak acceleration X"
             value={formatMetric(analysis.imu?.peakAbsAccelXG ?? null, 2, 'g')}
@@ -184,21 +202,29 @@ export function VehiclePage({
           <article className="configuration-card">
             <div className="configuration-heading">
               <h3>Wheel Speed Analysis</h3>
-              <span className="configuration-status" aria-label="Sensor configuration required">
-                <span aria-hidden="true">▲</span> SENSOR CONFIGURATION REQUIRED
+              <span
+                className={`configuration-status ${wheelsMissing ? '' : 'configuration-status-available'}`}
+                aria-label={wheelsMissing ? 'Wheel speed unavailable' : 'Wheel speed available'}
+              >
+                <span aria-hidden="true">{wheelsMissing ? '▲' : '●'}</span>{' '}
+                {wheelsMissing ? 'NOT IN THIS LOG' : 'AVAILABLE'}
               </span>
             </div>
             <p>
-              DIGITAL record는 pulse counter가 아니라 debounce가 적용된 GPIO level snapshot입니다.
-              현재 로그에서 wheel speed를 계산할 수 없습니다.
+              새 펌웨어는 pulse interval, PPR, 타이어 둘레를 이용해 계산한 FL/FR/RL/RR 속도를
+              DIGITAL record의 float32 값으로 직접 기록합니다.
             </p>
-            <div className="configuration-label">Required configuration</div>
+            <div className="configuration-label">Firmware configuration</div>
             <ul>
-              <li>Wheel sensor pulses per revolution (PPR)</li>
-              <li>Tire circumference</li>
-              <li>Real-driving pulse logging validation</li>
+              <li>Front PPR 15 / Rear PPR 14</li>
+              <li>Dry tire diameter 0.406 m (attached build)</li>
+              <li>500 ms stop timeout</li>
             </ul>
-            <div className="configuration-value">N/A · ready once configured and validated</div>
+            <div className="configuration-value">
+              {wheelsMissing
+                ? 'N/A · legacy GPIO layout or no wheel records'
+                : `${analysis.wheels!.samples.toLocaleString('en-US')} wheel-speed records`}
+            </div>
           </article>
 
           <article className="configuration-card">
@@ -231,6 +257,7 @@ export function VehiclePage({
             'Motor RPM',
             'IMU raw-axis acceleration',
             'Gyro Z',
+            ...(analysis.wheels !== null ? ['Wheel speed FL/FR/RL/RR'] : []),
           ].map((label) => (
             <div className="readiness-row" key={label}>
               <span>{label}</span>
@@ -239,7 +266,10 @@ export function VehiclePage({
               </span>
             </div>
           ))}
-          {['Wheel speed', 'Steering angle'].map((label) => (
+          {[
+            ...(analysis.wheels === null ? ['Wheel speed (new firmware log required)'] : []),
+            'Steering angle',
+          ].map((label) => (
             <div className="readiness-row" key={label}>
               <span>{label}</span>
               <span className="readiness-status readiness-required">

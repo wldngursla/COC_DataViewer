@@ -1,7 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import { parseLog } from '../../parser/parseLog';
 import { createGraphSeriesProvider, GRAPH_SIGNALS } from '../graphSeries';
-import { bootRecord, canRecord, gpsRecord, gyroRecord, buildLog } from '../../parser/__tests__/fixtures';
+import {
+  analogRecord,
+  bootRecord,
+  buildLog,
+  canRecord,
+  gpsRecord,
+  gyroRecord,
+  wheelSpeedRecord,
+} from '../../parser/__tests__/fixtures';
 
 const boot = () => bootRecord({ timestamp: 0, bootTime: 1755820800 });
 
@@ -49,10 +57,36 @@ const daly90 = (ts: number, voltage: number, currentA: number, soc: number) => {
 };
 
 describe('createGraphSeriesProvider', () => {
-  it('defines exactly the 11 documented signals', () => {
+  it('defines every collected scalar signal with a confirmed conversion', () => {
     expect(GRAPH_SIGNALS.map((d) => d.id)).toEqual([
-      'gpsSpeed', 'accelerator', 'motorRpm', 'accX', 'accY', 'accZ', 'yawRate', 'soc', 'voltage', 'current', 'power',
+      'gpsSpeed', 'gpsCourse', 'accelerator', 'motorRpm',
+      'wheelFl', 'wheelFr', 'wheelRl', 'wheelRr', 'wheelAverage',
+      'ezBusVoltage', 'ezBusCurrent', 'controllerTemp', 'motorTemp',
+      'accX', 'accY', 'accZ', 'gyroX', 'gyroY', 'yawRate', 'imuTemperatureRaw',
+      'ain1', 'ain2', 'ain3', 'ain4', 'ain5', 'ain6', 'ain7', 'ain8',
+      'soc', 'voltage', 'current', 'power', 'remainingCapacity',
     ]);
+  });
+
+  it('graphs firmware wheel-speed float fields and their four-field average', () => {
+    const log = parseLog(buildLog([
+      bootRecord({ timestamp: 0, bootTime: 1755820800, featureFlags: 1 }),
+      wheelSpeedRecord({ timestamp: 100, wheelSpeedKmh: [10, 20, 30, 40] }),
+      wheelSpeedRecord({ timestamp: 200, wheelSpeedKmh: [12, 22, 32, 42] }),
+    ]));
+    const provider = createGraphSeriesProvider(log);
+    expect(provider.get('wheelFl').points).toEqual([[0.1, 10], [0.2, 12]]);
+    expect(provider.get('wheelAverage').points).toEqual([[0.1, 25], [0.2, 27]]);
+  });
+
+  it('graphs all eight analog channels as ADS1115 volts', () => {
+    const log = parseLog(buildLog([
+      boot(),
+      analogRecord({ timestamp: 10, ain: [8000, 7000, 6000, 5000, 4000, 3000, 2000, 1000] }),
+    ]));
+    const provider = createGraphSeriesProvider(log);
+    expect(provider.get('ain1').points[0][1]).toBeCloseTo(1, 9);
+    expect(provider.get('ain8').points[0][1]).toBeCloseTo(0.125, 9);
   });
 
   it('GPS speed: elapsed seconds from run start, km/h values', () => {

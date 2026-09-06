@@ -60,6 +60,7 @@ export interface SelectedTrackTelemetry {
   gyroZDps: number | null;
   batteryCurrentA: number | null;
   batteryPowerKw: number | null;
+  wheelSpeedKmh: WheelValues | null;
 }
 
 export interface SelectedTimeTelemetry {
@@ -74,6 +75,7 @@ export interface SelectedTimeTelemetry {
   gyroZDps: number | null;
   batteryCurrentA: number | null;
   batteryPowerKw: number | null;
+  wheelSpeedKmh: WheelValues | null;
 }
 
 export interface SpatialTelemetrySelector {
@@ -96,6 +98,13 @@ interface ImuValues {
 interface BmsValues {
   currentA: number;
   powerKw: number;
+}
+
+export interface WheelValues {
+  fl: number;
+  fr: number;
+  rl: number;
+  rr: number;
 }
 
 interface PreparedSamples<T> {
@@ -285,10 +294,26 @@ export function createSpatialTelemetrySelector(
     });
   }
 
+  const wheelSamples: TimedSample<WheelValues>[] = [];
+  if (parsed.digital.format === 'wheel-speed-kmh') {
+    for (let index = 0; index < parsed.digital.count; index++) {
+      wheelSamples.push({
+        timestampMs: parsed.digital.timestamp[index],
+        value: {
+          fl: parsed.digital.wheelSpeedKmh[0][index],
+          fr: parsed.digital.wheelSpeedKmh[1][index],
+          rl: parsed.digital.wheelSpeedKmh[2][index],
+          rr: parsed.digital.wheelSpeedKmh[3][index],
+        },
+      });
+    }
+  }
+
   const preparedMotor = prepareSamples(motorSamples);
   const preparedAccelerator = prepareSamples(acceleratorSamples);
   const preparedImu = prepareSamples(imuSamples);
   const preparedBms = prepareSamples(bmsSamples);
+  const preparedWheels = prepareSamples(wheelSamples);
   const preparedGps = prepareSamples(
     track.points.map((point) => ({ timestampMs: point.timestampMs, value: point })),
   );
@@ -298,6 +323,7 @@ export function createSpatialTelemetrySelector(
     const motor = findNearestSample(preparedMotor, timestampMs);
     const imu = findNearestSample(preparedImu, timestampMs);
     const bms = findNearestSample(preparedBms, timestampMs);
+    const wheels = findNearestSample(preparedWheels, timestampMs);
     return {
       acceleratorPedalPercent: accelerator?.value ?? null,
       motorRpm: motor?.value ?? null,
@@ -307,6 +333,7 @@ export function createSpatialTelemetrySelector(
       gyroZDps: imu?.value.gyroZDps ?? null,
       batteryCurrentA: bms?.value.currentA ?? null,
       batteryPowerKw: bms?.value.powerKw ?? null,
+      wheelSpeedKmh: wheels?.value ?? null,
     };
   };
 

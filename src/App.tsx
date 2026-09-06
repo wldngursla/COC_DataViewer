@@ -9,6 +9,7 @@ import { GraphsPage } from './pages/GraphsPage';
 import { DataHealthPage } from './pages/DataHealthPage';
 import { BatteryPage } from './pages/BatteryPage';
 import { VehiclePage } from './pages/VehiclePage';
+import { DataExplorerPage } from './pages/DataExplorerPage';
 
 function App() {
   // 파싱 결과는 App이 소유한다 — 탭을 오가도 같은 run을 재파싱 없이 공유
@@ -61,6 +62,8 @@ function App() {
           onSelectTimestamp={setSelectedVehicleTimestampMs}
           onViewInGraphs={handleViewInGraphs}
         />
+      ) : view === 'data' ? (
+        <DataExplorerPage run={run} />
       ) : view === 'health' ? (
         <DataHealthPage run={run} />
       ) : (

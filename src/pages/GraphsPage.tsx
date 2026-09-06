@@ -25,12 +25,29 @@ import { StackedSignalChart } from '../components/StackedSignalChart';
 import { TrackMap } from '../components/TrackMap';
 import { formatDuration, formatElapsedTime } from '../ui/format';
 
-const DEFAULT_ON: readonly SignalId[] = ['gpsSpeed', 'accelerator', 'motorRpm', 'current'];
+const DEFAULT_ON: readonly SignalId[] = [
+  'gpsSpeed',
+  'accelerator',
+  'motorRpm',
+  'wheelFl',
+  'wheelFr',
+  'current',
+];
 
-const GROUP_ORDER: readonly SignalGroup[] = ['Vehicle', 'IMU', 'Battery'];
+const GROUP_ORDER: readonly SignalGroup[] = [
+  'Vehicle',
+  'Wheels',
+  'Motor',
+  'IMU',
+  'Analog',
+  'Battery',
+];
 const GROUP_LABEL: Record<SignalGroup, string> = {
   Vehicle: 'Vehicle',
+  Wheels: 'Wheel speed',
+  Motor: 'Motor controller',
   IMU: 'IMU (sensor axis)',
+  Analog: 'Analog inputs',
   Battery: 'Battery',
 };
 
@@ -259,6 +276,10 @@ export function GraphsPage({
           </div>
           <dl className="current-values-grid">
             <div><dt>GPS Speed</dt><dd>{formatMetric(currentValues.gpsSpeedKmh, 1, 'km/h')}</dd></div>
+            <div><dt>Wheel FL</dt><dd>{formatMetric(currentValues.wheelSpeedKmh?.fl ?? null, 1, 'km/h')}</dd></div>
+            <div><dt>Wheel FR</dt><dd>{formatMetric(currentValues.wheelSpeedKmh?.fr ?? null, 1, 'km/h')}</dd></div>
+            <div><dt>Wheel RL</dt><dd>{formatMetric(currentValues.wheelSpeedKmh?.rl ?? null, 1, 'km/h')}</dd></div>
+            <div><dt>Wheel RR</dt><dd>{formatMetric(currentValues.wheelSpeedKmh?.rr ?? null, 1, 'km/h')}</dd></div>
             <div><dt>Accelerator Pedal</dt><dd>{formatMetric(currentValues.acceleratorPedalPercent, 0, '%')}</dd></div>
             <div><dt>Motor RPM</dt><dd>{formatMetric(currentValues.motorRpm, 0, 'rpm')}</dd></div>
             <div><dt>Acceleration X</dt><dd>{formatMetric(currentValues.accelerationXG, 2, 'g')}</dd></div>

@@ -1,6 +1,6 @@
-/** Top navigation for the five implemented V1 analysis pages. */
+/** Top navigation for the implemented analysis and raw-data pages. */
 
-export type ViewId = 'load' | 'overview' | 'graphs' | 'vehicle' | 'battery' | 'health';
+export type ViewId = 'load' | 'overview' | 'graphs' | 'vehicle' | 'battery' | 'data' | 'health';
 
 interface NavTab {
   id: ViewId;
@@ -12,6 +12,7 @@ const TABS: NavTab[] = [
   { id: 'graphs', label: 'Graphs' },
   { id: 'vehicle', label: 'Vehicle' },
   { id: 'battery', label: 'Battery' },
+  { id: 'data', label: 'All Data' },
   { id: 'health', label: 'Data Health' },
 ];
 

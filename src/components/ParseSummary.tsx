@@ -34,7 +34,11 @@ export function ParseSummary({ result }: ParseSummaryProps) {
           <StatTile
             label="Protocol version"
             value={boot !== null ? String(boot.protocolVersion) : '—'}
-            hint={boot === null ? 'BOOT record 없음' : undefined}
+            hint={
+              boot === null
+                ? 'BOOT record 없음'
+                : `feature flags 0x${boot.featureFlags.toString(16).toUpperCase().padStart(2, '0')}`
+            }
           />
           <StatTile
             label="Boot time"
@@ -51,7 +55,10 @@ export function ParseSummary({ result }: ParseSummaryProps) {
           <StatTile label="GPS records" value={formatCount(stats.byType[LogType.Gps])} />
           <StatTile label="IMU records" value={formatCount(stats.byType[LogType.Gyroscope])} />
           <StatTile label="Analog records" value={formatCount(stats.byType[LogType.Analog])} />
-          <StatTile label="Digital records" value={formatCount(stats.byType[LogType.Digital])} />
+          <StatTile
+            label={result.digital.format === 'wheel-speed-kmh' ? 'Wheel speed records' : 'Digital records'}
+            value={formatCount(stats.byType[LogType.Digital])}
+          />
           <StatTile
             label="System/User event records"
             value={formatCount(countEventRecords(result))}

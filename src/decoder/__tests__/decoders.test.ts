@@ -8,10 +8,13 @@ import {
   decodeBmsCurrent,
   decodeBmsSoc,
   decodeBmsRemainingCapacityMah,
+  decodeEzFaults,
+  decodeDalyFaults,
   CAN_ID_EZ_MSG1,
   CAN_ID_EZ_MSG2,
   CAN_ID_DALY_90,
 } from '../can';
+import { analogRawToVolts } from '../analog';
 import { rawToDecimalDegrees, rawToKmh, rawToCourseDeg, haversineMeters } from '../gps';
 import { rawToG, rawToDps, selectAxis, IMU_AXIS_MAP } from '../imu';
 
@@ -110,5 +113,28 @@ describe('IMU decoder', () => {
     expect(selectAxis(v, IMU_AXIS_MAP.lateral)).toBe(2);
     expect(selectAxis(v, IMU_AXIS_MAP.yaw)).toBe(3);
     expect(selectAxis(v, { axis: 'y', sign: -1 })).toBe(-2);
+  });
+});
+
+describe('analog decoder', () => {
+  it('converts signed ADS1115 counts using the configured ±4.096 V range', () => {
+    expect(analogRawToVolts(32767)).toBeCloseTo(4.095875, 9);
+    expect(analogRawToVolts(-32768)).toBe(-4.096);
+    expect(analogRawToVolts(0)).toBe(0);
+  });
+});
+
+describe('CAN fault decoders', () => {
+  it('lists asserted EZkontrol fault bits', () => {
+    const state = decodeEzFaults(Uint8Array.of(0, 0, 0, 0, 0b00000101, 0, 0b00100000, 0));
+    expect(state.active).toEqual(['Overcurrent', 'Overvoltage', 'Software']);
+    expect(state.clear).toBe(false);
+  });
+
+  it('keeps Daly B7 as a fault code and decodes documented flags', () => {
+    const state = decodeDalyFaults(Uint8Array.of(1, 0, 0, 0, 0, 0b00100000, 0, 7));
+    expect(state.active).toEqual(['Cell overvoltage L1', 'Pre-charge failure']);
+    expect(state.faultCode).toBe(7);
+    expect(state.clear).toBe(false);
   });
 });

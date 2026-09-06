@@ -100,6 +100,37 @@ export function decodeAccelerator(data: Uint8Array): number {
   return data[2];
 }
 
+export interface CanFaultState {
+  /** Human-readable names for every asserted documented flag. */
+  active: string[];
+  /** True when no documented flag is asserted. */
+  clear: boolean;
+}
+
+const EZ_FAULT_LABELS: readonly (readonly string[])[] = [
+  [
+    'Overcurrent', 'Overload', 'Overvoltage', 'Undervoltage',
+    'Controller Overheat', 'Motor Overheat', 'Motor Stalled', 'Motor Out of phase',
+  ],
+  [
+    'Motor Sensor', 'Motor AUX Sensor', 'Encoder Misaligned', 'Anti-Runaway',
+    'Main Accelerator', 'AUX Accelerator', 'Pre-charge', 'DC Contactor',
+  ],
+  ['Power valve', 'Current Sensor', 'Auto-tune', 'RS485', 'CAN', 'Software'],
+];
+
+/** EZkontrol Msg2 B4-B6 documented fault bitfield. */
+export function decodeEzFaults(data: Uint8Array): CanFaultState {
+  const active: string[] = [];
+  for (let byteOffset = 0; byteOffset < EZ_FAULT_LABELS.length; byteOffset++) {
+    const labels = EZ_FAULT_LABELS[byteOffset];
+    for (let bit = 0; bit < labels.length; bit++) {
+      if ((data[4 + byteOffset] & (1 << bit)) !== 0) active.push(labels[bit]);
+    }
+  }
+  return { active, clear: active.length === 0 };
+}
+
 /* ------------------------------------------------------------------ *
  * Daly BMS — ID 0x18904001 (DataID 0x90)
  * ------------------------------------------------------------------ */
@@ -129,4 +160,60 @@ export function decodeBmsSoc(data: Uint8Array): number {
 /** Remaining capacity [mAh]. B4-B7 BE u32 */
 export function decodeBmsRemainingCapacityMah(data: Uint8Array): number {
   return beU32(data, 4);
+}
+
+const DALY_FAULT_LABELS: readonly (readonly string[])[] = [
+  [
+    'Cell overvoltage L1', 'Cell overvoltage L2', 'Cell undervoltage L1', 'Cell undervoltage L2',
+    'Pack overvoltage L1', 'Pack overvoltage L2', 'Pack undervoltage L1', 'Pack undervoltage L2',
+  ],
+  [
+    'Charge high temperature L1', 'Charge high temperature L2',
+    'Charge low temperature L1', 'Charge low temperature L2',
+    'Discharge high temperature L1', 'Discharge high temperature L2',
+    'Discharge low temperature L1', 'Discharge low temperature L2',
+  ],
+  [
+    'Charge overcurrent L1', 'Charge overcurrent L2',
+    'Discharge overcurrent L1', 'Discharge overcurrent L2',
+    'SOC high L1', 'SOC high L2', 'SOC low L1', 'SOC low L2',
+  ],
+  [
+    'Cell voltage difference L1', 'Cell voltage difference L2',
+    'Temperature difference L1', 'Temperature difference L2',
+  ],
+  // The source document groups B4 but does not assign individual meanings.
+  // Retain asserted positions rather than inventing an undocumented mapping.
+  [
+    'MOS/temperature fault B4.0', 'MOS/temperature fault B4.1',
+    'MOS/temperature fault B4.2', 'MOS/temperature fault B4.3',
+    'MOS/temperature fault B4.4', 'MOS/temperature fault B4.5',
+    'MOS/temperature fault B4.6', 'MOS/temperature fault B4.7',
+  ],
+  [
+    'AFE chip error', 'Voltage acquisition disconnected', 'Cell temperature sensor error',
+    'EEPROM error', 'RTC error', 'Pre-charge failure', 'Communication failure',
+    'Internal communication failure',
+  ],
+  [
+    'Current module fault', 'Pack voltage detection fault',
+    'Short-circuit protection fault', 'Low-voltage charge prohibited',
+  ],
+];
+
+export interface DalyFaultState extends CanFaultState {
+  /** Daly 0x98 B7, retained as a numeric code rather than treated as flags. */
+  faultCode: number;
+}
+
+/** Daly 0x98 B0-B6 documented fault flags plus B7 fault code. */
+export function decodeDalyFaults(data: Uint8Array): DalyFaultState {
+  const active: string[] = [];
+  for (let byte = 0; byte < DALY_FAULT_LABELS.length; byte++) {
+    const labels = DALY_FAULT_LABELS[byte];
+    for (let bit = 0; bit < labels.length; bit++) {
+      if ((data[byte] & (1 << bit)) !== 0) active.push(labels[bit]);
+    }
+  }
+  return { active, clear: active.length === 0 && data[7] === 0, faultCode: data[7] };
 }

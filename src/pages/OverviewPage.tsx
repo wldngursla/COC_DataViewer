@@ -103,7 +103,11 @@ export function OverviewPage({ run }: OverviewPageProps) {
           <StatTile
             label="Protocol version"
             value={result.boot !== null ? String(result.boot.protocolVersion) : NA}
-            hint={result.boot === null ? 'BOOT record 없음' : undefined}
+            hint={
+              result.boot === null
+                ? 'BOOT record 없음'
+                : `feature flags 0x${result.boot.featureFlags.toString(16).toUpperCase().padStart(2, '0')}`
+            }
           />
           <StatTile
             label="Boot time"

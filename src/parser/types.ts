@@ -15,6 +15,12 @@ export const LOG_MAGIC = 0xae;
 /** PROTOCOL_VERSION carried in the BOOT payload. */
 export const PROTOCOL_VERSION = 1;
 
+/** BOOT feature flags used by newer compatible logger firmware. */
+export const LogFeature = {
+  DigitalWheelSpeedFloat: 1 << 0,
+  SensorStatusEvents: 1 << 1,
+} as const;
+
 /**
  * log_type_t. Declared as a const object rather than a TS `enum` because the
  * project builds with `erasableSyntaxOnly`.
@@ -62,6 +68,8 @@ export interface BootRecord {
   /** ms since boot */
   timestamp: number;
   protocolVersion: number;
+  /** Layout/capability bits. Legacy logs carry 0 in this byte. */
+  featureFlags: number;
   /** colon-separated lowercase hex, e.g. "a1:b2:c3:d4:e5:f6" */
   mac: string;
   /** epoch seconds (UTC). 0 means the logger never got a GPS fix. */
@@ -122,12 +130,24 @@ export interface AnalogRawSeries {
   ain: Int16Array[];
 }
 
-export interface DigitalRawSeries {
+export interface LegacyDigitalRawSeries {
   count: number;
   timestamp: Uint32Array;
+  format: 'gpio-level';
   /** din[c][i] — GPIO level 0/1, NOT a pulse counter */
   din: Uint32Array[];
 }
+
+export interface WheelSpeedRawSeries {
+  count: number;
+  timestamp: Uint32Array;
+  format: 'wheel-speed-kmh';
+  /** FL / FR / RL / RR, calculated and logged by the firmware [km/h]. */
+  wheelSpeedKmh: Float32Array[];
+}
+
+/** DIGITAL payload is selected by BOOT.featureFlags bit 0. */
+export type DigitalRawSeries = LegacyDigitalRawSeries | WheelSpeedRawSeries;
 
 export interface GyroRawSeries {
   count: number;

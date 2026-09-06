@@ -161,19 +161,23 @@ export function computeDataHealth(parsed: ParsedLog): DataHealthResult {
   const eventTimestamps = parsed.events.map((event) => event.timestamp);
 
   const sources = SOURCE_DEFINITIONS.map((source) => {
+    const displayedSource =
+      source.id === 'digital' && parsed.digital.format === 'wheel-speed-kmh'
+        ? { ...source, label: 'Wheel Speed' }
+        : source;
     switch (source.id) {
       case 'can':
-        return analyzeSource(source, parsed.can.timestamp);
+        return analyzeSource(displayedSource, parsed.can.timestamp);
       case 'gps':
-        return analyzeSource(source, parsed.gps.timestamp);
+        return analyzeSource(displayedSource, parsed.gps.timestamp);
       case 'imu':
-        return analyzeSource(source, parsed.gyro.timestamp);
+        return analyzeSource(displayedSource, parsed.gyro.timestamp);
       case 'analog':
-        return analyzeSource(source, parsed.analog.timestamp);
+        return analyzeSource(displayedSource, parsed.analog.timestamp);
       case 'digital':
-        return analyzeSource(source, parsed.digital.timestamp);
+        return analyzeSource(displayedSource, parsed.digital.timestamp);
       case 'events':
-        return analyzeSource(source, eventTimestamps);
+        return analyzeSource(displayedSource, eventTimestamps);
     }
   });
 

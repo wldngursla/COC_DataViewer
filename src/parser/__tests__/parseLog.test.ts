@@ -8,6 +8,7 @@ import {
   gpsRecord,
   analogRecord,
   digitalRecord,
+  wheelSpeedRecord,
   gyroRecord,
   eventRecord,
   buildLog,
@@ -55,6 +56,7 @@ describe('parseLog', () => {
     // BOOT
     expect(log.boot).not.toBeNull();
     expect(log.boot!.protocolVersion).toBe(1);
+    expect(log.boot!.featureFlags).toBe(0);
     expect(log.boot!.mac).toBe('01:02:03:04:05:06');
     expect(log.boot!.bootTime).toBe(BOOT_EPOCH);
     expect(log.bootTimeEpochSec).toBe(BOOT_EPOCH);
@@ -83,6 +85,8 @@ describe('parseLog', () => {
 
     // DIGITAL
     expect(log.digital.count).toBe(1);
+    expect(log.digital.format).toBe('gpio-level');
+    if (log.digital.format !== 'gpio-level') expect.unreachable();
     expect(log.digital.din.map((c) => c[0])).toEqual([1, 0, 1, 0]);
 
     // GYRO
@@ -102,6 +106,20 @@ describe('parseLog', () => {
 
     expect(log.stats.byType[LogType.Can]).toBe(1);
     expect(log.stats.byType[LogType.Gyroscope]).toBe(1);
+  });
+
+  it('uses BOOT feature bit 0 to decode DIGITAL as four float32 wheel speeds', () => {
+    const log = parseLog(buildLog([
+      bootRecord({ timestamp: 0, bootTime: BOOT_EPOCH, featureFlags: 0b11 }),
+      wheelSpeedRecord({ timestamp: 100, wheelSpeedKmh: [12.5, 13.25, 11.75, 14] }),
+    ]));
+
+    expect(log.boot?.featureFlags).toBe(0b11);
+    expect(log.digital.format).toBe('wheel-speed-kmh');
+    if (log.digital.format !== 'wheel-speed-kmh') expect.unreachable();
+    expect(log.digital.wheelSpeedKmh.map((wheel) => wheel[0])).toEqual([
+      12.5, 13.25, 11.75, 14,
+    ]);
   });
 
   it('writes GPS reserved bytes, speed, and course at protocol.h offsets', () => {

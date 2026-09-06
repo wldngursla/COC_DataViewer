@@ -23,6 +23,36 @@ export interface VehicleAnalysisResult {
   maxGpsSpeedKmh: number | null;
   maxMotorRpm: number | null;
   imu: ImuSensorAxisPeaks | null;
+  wheels: WheelSpeedAnalysis | null;
+}
+
+export interface WheelSpeedAnalysis {
+  /** FL / FR / RL / RR maximum values from firmware-calculated float32 fields. */
+  maximumKmh: [number, number, number, number];
+  /** Maximum of the arithmetic mean of all four stored wheel fields. */
+  maximumFourWheelAverageKmh: number;
+  samples: number;
+}
+
+function computeWheelSpeedAnalysis(parsed: ParsedLog): WheelSpeedAnalysis | null {
+  const digital = parsed.digital;
+  if (digital.format !== 'wheel-speed-kmh' || digital.count === 0) return null;
+
+  const maximumKmh: [number, number, number, number] = [0, 0, 0, 0];
+  let maximumFourWheelAverageKmh = 0;
+  for (let index = 0; index < digital.count; index++) {
+    let sum = 0;
+    for (let wheel = 0; wheel < 4; wheel++) {
+      const speed = digital.wheelSpeedKmh[wheel][index];
+      if (Number.isFinite(speed)) {
+        maximumKmh[wheel] = Math.max(maximumKmh[wheel], speed);
+        sum += speed;
+      }
+    }
+    maximumFourWheelAverageKmh = Math.max(maximumFourWheelAverageKmh, sum / 4);
+  }
+
+  return { maximumKmh, maximumFourWheelAverageKmh, samples: digital.count };
 }
 
 function computeImuSensorAxisPeaks(gyro: GyroRawSeries): ImuSensorAxisPeaks | null {
@@ -53,5 +83,6 @@ export function computeVehicleAnalysis(parsed: ParsedLog): VehicleAnalysisResult
     maxGpsSpeedKmh: computeMaxGpsSpeedKmh(parsed.gps),
     maxMotorRpm: computeMaxMotorRpm(parsed.can),
     imu: computeImuSensorAxisPeaks(parsed.gyro),
+    wheels: computeWheelSpeedAnalysis(parsed),
   };
 }

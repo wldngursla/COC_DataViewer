@@ -18,11 +18,13 @@ function newRecord(type: number, timestamp: number): { bytes: Uint8Array; view: 
 export function bootRecord(opts: {
   timestamp: number;
   protocolVersion?: number;
+  featureFlags?: number;
   mac?: number[];
   bootTime: number;
 }): Uint8Array {
   const { bytes, view } = newRecord(LogType.Boot, opts.timestamp);
   view.setUint8(8, opts.protocolVersion ?? 1);
+  view.setUint8(9, opts.featureFlags ?? 0);
   (opts.mac ?? [0xa1, 0xb2, 0xc3, 0xd4, 0xe5, 0xf6]).forEach((b, i) => view.setUint8(10 + i, b));
   view.setBigUint64(16, BigInt(opts.bootTime), true);
   sealChecksum(view, 0);
@@ -77,6 +79,16 @@ export function analogRecord(opts: { timestamp: number; ain: number[] }): Uint8A
 export function digitalRecord(opts: { timestamp: number; din: number[] }): Uint8Array {
   const { bytes, view } = newRecord(LogType.Digital, opts.timestamp);
   opts.din.forEach((v, c) => view.setUint32(8 + c * 4, v, true));
+  sealChecksum(view, 0);
+  return bytes;
+}
+
+export function wheelSpeedRecord(opts: {
+  timestamp: number;
+  wheelSpeedKmh: [number, number, number, number];
+}): Uint8Array {
+  const { bytes, view } = newRecord(LogType.Digital, opts.timestamp);
+  opts.wheelSpeedKmh.forEach((value, wheel) => view.setFloat32(8 + wheel * 4, value, true));
   sealChecksum(view, 0);
   return bytes;
 }

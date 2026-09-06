@@ -7,6 +7,7 @@ import {
   canRecord,
   gpsRecord,
   gyroRecord,
+  wheelSpeedRecord,
 } from '../../parser/__tests__/fixtures';
 import { computeVehicleAnalysis } from '../vehicleAnalysis';
 
@@ -81,5 +82,22 @@ describe('computeVehicleAnalysis', () => {
 
   it('returns N/A-ready null when IMU records are missing', () => {
     expect(analyze([gps(100, 1_000)]).imu).toBeNull();
+  });
+
+  it('summarizes firmware-calculated wheel speeds when the feature bit is present', () => {
+    const parsed = parseLog(buildLog([
+      bootRecord({ timestamp: 0, bootTime: 1_755_820_800, featureFlags: 1 }),
+      wheelSpeedRecord({ timestamp: 100, wheelSpeedKmh: [10, 20, 30, 40] }),
+      wheelSpeedRecord({ timestamp: 200, wheelSpeedKmh: [50, 45, 35, 25] }),
+    ]));
+    const result = computeVehicleAnalysis(parsed);
+
+    expect(result.wheels?.maximumKmh).toEqual([50, 45, 35, 40]);
+    expect(result.wheels?.maximumFourWheelAverageKmh).toBe(38.75);
+    expect(result.wheels?.samples).toBe(2);
+  });
+
+  it('does not interpret legacy DIGITAL GPIO levels as wheel speed', () => {
+    expect(analyze([]).wheels).toBeNull();
   });
 });
