@@ -24,6 +24,8 @@ import { computeTimeRange } from '../calculations/logSummary';
 import { StackedSignalChart } from '../components/StackedSignalChart';
 import { TrackMap } from '../components/TrackMap';
 import { formatDuration, formatElapsedTime } from '../ui/format';
+import { withWheelEnvelope, type WheelDisplayMode } from '../calculations/wheelEnvelope';
+import { WheelEnvelopeControls } from '../components/WheelEnvelopeControls';
 
 const DEFAULT_ON: readonly SignalId[] = [
   'gpsSpeed',
@@ -80,6 +82,8 @@ export function GraphsPage({
     [run.result, track],
   );
   const [enabled, setEnabled] = useState<ReadonlySet<SignalId>>(() => new Set(DEFAULT_ON));
+  const [wheelMode, setWheelMode] = useState<WheelDisplayMode>('envelope');
+  const [wheelWindow, setWheelWindow] = useState(0.5);
   const [playback, setPlayback] = useState<PlaybackState>(() => {
     const initialTimeSec =
       selectedTimestampMs !== null && runRange !== null
@@ -140,8 +144,8 @@ export function GraphsPage({
     () =>
       GRAPH_SIGNALS.filter((definition) =>
         enabled.has(definition.id) && provider.isAvailable(definition.id),
-      ).map((definition) => provider.get(definition.id)),
-    [provider, enabled],
+      ).map((definition) => withWheelEnvelope(provider.get(definition.id), wheelWindow, wheelMode)),
+    [provider, enabled, wheelWindow, wheelMode],
   );
 
   const selectTime = useCallback(
@@ -294,6 +298,7 @@ export function GraphsPage({
         </div>
       </section>
 
+      <WheelEnvelopeControls mode={wheelMode} windowSec={wheelWindow} onMode={setWheelMode} onWindow={setWheelWindow} />
       {activeSeries.length > 0 ? (
         <StackedSignalChart
           seriesList={activeSeries}

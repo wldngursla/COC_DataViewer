@@ -128,6 +128,16 @@ interface TooltipEntry {
 function buildOption(seriesList: GraphSeries[], durationSec: number): echarts.EChartsCoreOption {
   const n = seriesList.length;
   const axisIndexes = seriesList.map((_, i) => i);
+  const plotted = seriesList.flatMap((source, gridIndex) => {
+    const envelope = source.envelope;
+    const main = { source, gridIndex, points: source.points, label: envelope ? '중앙값' : '', role: envelope ? 'trend' : 'source' };
+    return envelope ? [
+      ...(envelope.raw ? [{ ...main, points: envelope.raw, label: '원본', role: 'raw' }] : []),
+      { ...main, points: envelope.lower, label: '최저', role: 'bound' },
+      { ...main, points: envelope.upper, label: '최고', role: 'bound' },
+      main,
+    ] : [main];
+  });
 
   return {
     backgroundColor: 'transparent',
@@ -149,19 +159,21 @@ function buildOption(seriesList: GraphSeries[], durationSec: number): echarts.EC
         const lines = [`<b>t = ${clockTooltip(Number(t))}</b>`];
         for (const e of list) {
           if (e.seriesIndex === undefined) continue;
-          const s = seriesList[e.seriesIndex];
+          const plottedEntry = plotted[e.seriesIndex];
+          if (plottedEntry === undefined) continue;
+          const s = plottedEntry.source;
           const v = e.value?.[1];
           const text =
             v === null || v === undefined
               ? 'no data'
               : `${v.toFixed(SIGNAL_DECIMALS[s.def.id])} ${s.def.unit}`;
-          lines.push(`${s.def.label}: <b>${text}</b>`);
+          lines.push(`${s.def.label}${plottedEntry.label ? ` (${plottedEntry.label})` : ''}: <b>${text}</b>`);
         }
         return lines.join('<br/>');
       },
     },
     title: seriesList.map((s, i) => ({
-      text: `${s.def.label}  [${s.def.unit}]`,
+      text: `${s.def.label}  [${s.def.unit}]${s.envelope ? ` · Envelope ${s.envelope.windowSec}s` : ''}`,
       left: 4,
       top: TOP_PAD + i * (ROW_HEIGHT + ROW_GAP) - 20,
       textStyle: { color: '#c3c2b7', fontSize: 12, fontWeight: 600 },
@@ -211,15 +223,15 @@ function buildOption(seriesList: GraphSeries[], durationSec: number): echarts.EC
         labelFormatter: (v: number) => clockLabel(v),
       },
     ],
-    series: seriesList.map((s, i) => ({
-      name: s.def.label,
+    series: plotted.map(({ source: s, gridIndex, points, label, role }) => ({
+      name: `${s.def.label}${label ? ` (${label})` : ''}`,
       type: 'line',
-      xAxisIndex: i,
-      yAxisIndex: i,
-      data: s.points,
+      xAxisIndex: gridIndex,
+      yAxisIndex: gridIndex,
+      data: points,
       showSymbol: false,
       sampling: 'lttb', // 시각적 다운샘플링 — zoom 시 원본 정밀도 유지
-      lineStyle: { width: 1.2, color: SIGNAL_COLOR[s.def.id] },
+      lineStyle: { width: role === 'trend' ? 2.4 : 1.2, color: SIGNAL_COLOR[s.def.id], opacity: role === 'raw' ? 0.22 : role === 'bound' ? 0.65 : 1, type: role === 'bound' ? 'dashed' : 'solid' },
       itemStyle: { color: SIGNAL_COLOR[s.def.id] },
       connectNulls: false, // 공백 구간을 선으로 잇지 않는다
     })),

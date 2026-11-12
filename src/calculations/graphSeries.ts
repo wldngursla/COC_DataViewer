@@ -124,6 +124,8 @@ export interface GraphSeries {
   def: GraphSignalDef;
   available: boolean;
   points: GraphPoint[];
+  /** Display-only wheel min/max bounds; points holds the median trend. */
+  envelope?: import('./wheelEnvelope').WheelEnvelope;
 }
 
 export interface GraphSeriesProvider {
