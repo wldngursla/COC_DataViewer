@@ -64,7 +64,7 @@ function accelerator(timestamp: number, percent: number): Uint8Array {
 
 function daly90(timestamp: number, voltageV: number, currentA: number): Uint8Array {
   const voltageRaw = Math.round(voltageV * 10);
-  const currentRaw = Math.round(currentA * 10 + 30_000);
+  const currentRaw = Math.round(30_000 - currentA * 10);
   return canRecord({
     timestamp,
     id: CAN_ID_DALY_90,

@@ -2,14 +2,15 @@
  * Battery performance KPIs for a completed run.
  *
  * Daly 0x90 frames provide voltage, signed current, and SOC at one timestamp.
- * Documented current sign is discharge negative / charge positive. Consumed
- * energy therefore integrates only max(-V * I, 0) using actual timestamps.
+ * Current sign is discharge positive / charge negative. Consumed
+ * energy integrates discharge power using actual timestamps.
  */
 
 import type { CanRawSeries, GpsRawSeries, ParsedLog } from '../parser/types';
 import { CAN_DATA_BYTES } from '../parser/types';
 import {
   CAN_ID_DALY_90,
+  DISCHARGE_SIGN,
   decodeBmsCurrent,
   decodeBmsSoc,
   decodeBmsVoltage,
@@ -33,9 +34,9 @@ export interface BatteryKpis {
   minimumVoltageV: number;
   maximumVoltageV: number;
   averageVoltageV: number;
-  /** Positive magnitude. The decoded discharge current itself is negative. */
+  /** Positive magnitude of discharge current. */
   peakDischargeCurrentA: number;
-  /** Positive magnitude of max(-V * I, 0), in kW. */
+  /** Positive magnitude of discharge power, in kW. */
   peakDischargePowerKw: number;
   /** Discharge-only trapezoidal integral, in kWh. */
   consumedEnergyKwh: number;
@@ -73,7 +74,7 @@ function collectBatterySamples(can: CanRawSeries): BatterySample[] {
       voltageV,
       currentA,
       socPercent: decodeBmsSoc(data),
-      dischargePowerKw: Math.max(-signedPowerKw, 0),
+      dischargePowerKw: Math.max(DISCHARGE_SIGN * signedPowerKw, 0),
     });
   }
 
@@ -100,7 +101,7 @@ function computeBatteryKpis(can: CanRawSeries): BatteryKpis | null {
     if (sample.voltageV < minimumVoltageV) minimumVoltageV = sample.voltageV;
     if (sample.voltageV > maximumVoltageV) maximumVoltageV = sample.voltageV;
 
-    const dischargeCurrentA = Math.max(-sample.currentA, 0);
+    const dischargeCurrentA = Math.max(DISCHARGE_SIGN * sample.currentA, 0);
     if (dischargeCurrentA > peakDischargeCurrentA) {
       peakDischargeCurrentA = dischargeCurrentA;
     }

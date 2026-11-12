@@ -111,7 +111,7 @@ export const GRAPH_SIGNALS: readonly GraphSignalDef[] = [
   })),
   { id: 'soc', label: 'Battery SOC', unit: '%', group: 'Battery', note: 'Daly 0x18904001' },
   { id: 'voltage', label: 'Battery Voltage', unit: 'V', group: 'Battery', note: 'Daly 0x18904001' },
-  { id: 'current', label: 'Battery Current', unit: 'A', group: 'Battery', note: '방전 − / 충전 + (문서 기준)' },
+  { id: 'current', label: 'Battery Current', unit: 'A', group: 'Battery', note: '방전 + / 충전 − (사용자 요청 부호 반전)' },
   { id: 'power', label: 'Battery Power', unit: 'kW', group: 'Battery', note: 'P = V × I / 1000 (signed)' },
   { id: 'remainingCapacity', label: 'Remaining Capacity', unit: 'Ah', group: 'Battery', note: 'Daly 0x18934001' },
   ...Array.from({ length: 24 }, (_, i): GraphSignalDef => ({ id: `batteryTemp${i + 1}`, label: `Battery Temperature ${i + 1}`, unit: '°C', group: 'Battery', note: 'Daly 0x18964001 · raw − 40' })),

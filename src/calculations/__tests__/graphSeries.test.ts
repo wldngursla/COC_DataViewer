@@ -43,10 +43,10 @@ const ezAccelerator = (ts: number, percent: number) =>
     data: [0, 0, percent, 0, 0, 0, 0, 0],
   });
 
-// Daly 0x18904001: V = BE(B0,B1)*0.1, A = (BE(B4,B5)-30000)*0.1, SOC = BE(B6,B7)*0.1
+// Daly 0x18904001: V = BE(B0,B1)*0.1, A = (30000-BE(B4,B5))*0.1, SOC = BE(B6,B7)*0.1
 const daly90 = (ts: number, voltage: number, currentA: number, soc: number) => {
   const vRaw = Math.round(voltage * 10);
-  const iRaw = 30000 + Math.round(currentA * 10);
+  const iRaw = 30000 - Math.round(currentA * 10);
   const sRaw = Math.round(soc * 10);
   return canRecord({
     timestamp: ts,

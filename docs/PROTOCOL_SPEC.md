@@ -214,7 +214,7 @@ Motor RPM 표시 부호는 사용자 요청에 따라 반전한다: `RPM = -(raw
 | A | **Wheel speed** | `reference/`에 신호 정의가 없다. DIGITAL은 레벨 0/1 스냅샷 + 10 ms 디바운스여서 엣지 타이밍 역산이 필요하고, **pulses-per-revolution과 타이어 둘레가 어디에도 문서화되지 않았다.** 디바운스가 주행 중 펄스를 온전히 잡는지도 실측 필요. → V1 보류 |
 | B | **Steering angle** | 데이터 소스 자체가 문서에 없다. analog 8채널의 용도가 `reference/`에 없다. → V1 보류 |
 | C | **IMU 장착 방향** | x/y/z ↔ 종/횡/수직 매핑과 부호가 문서화되지 않았다. 기본 가정(X=종 전방+, Y=횡 우측+, Z=수직, Yaw=`gyro_z`)으로 구현하고 `decoder/imu.ts`의 `IMU_AXIS_MAP` 상수 한 곳에서 교체 가능하게 둔다. |
-| D | **전류 부호** | `CAN_SIGNALS_SELECTED.md`에 방전 −/충전 +로 문서화되어 있으나 실측 확인 전이므로 `DISCHARGE_SIGN` 상수로 분리한다. |
+| D | **전류 부호** | 사용자 요청으로 Daly BMS 전류 부호를 반전한다: `I = (30000 - BE(B4,B5)) × 0.1 A`. 방전 + / 충전 −이며 `DISCHARGE_SIGN=1`. 소비 에너지는 `max(V×I, 0)`을 적분한다. |
 | E | **Daly BMS 데이터 존재 여부** | Daly는 폴링-응답 방식이라 버스에 폴링 노드가 없으면 로그에 BMS 프레임이 아예 없을 수 있다(원문에도 "확인 필요"). SOC/전압/전류/전비 화면은 "데이터 없음"을 정상 상태로 처리해야 한다. |
 | F | **CAN ID 가정** | METER 모드 `0x17`, SA `0xEF`, Daly addr `0x01`/PC `0x40` 전부 가정이다(펌웨어 `config.h`도 같은 가정에 같은 주석). ID는 상수로 분리한다. |
 | G | **Motor RPM 사용자 확정 사양** | B6–B7 LE u16, 배율 1, 오프셋 −32000: `rpm = raw − 32000`. B6=0x00, B7=0x7D → 0x7D00=32000 → 0 rpm. 기존 선택 CAN 문서의 RPM 배율·오프셋보다 이 사용자 확인 사양을 우선한다. |

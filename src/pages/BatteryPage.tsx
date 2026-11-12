@@ -109,17 +109,17 @@ export function BatteryPage({ run }: BatteryPageProps) {
           <StatTile
             label="Peak discharge current"
             value={formatMetric(battery?.peakDischargeCurrentA ?? null, 1, 'A')}
-            hint={bmsMissingHint ?? '방전 전류(음수)의 최대 크기'}
+            hint={bmsMissingHint ?? '방전 전류(양수)의 최대 크기'}
           />
           <StatTile
             label="Peak discharge power"
             value={formatMetric(battery?.peakDischargePowerKw ?? null, 2, 'kW')}
-            hint={bmsMissingHint ?? 'max(−V × I, 0)'}
+            hint={bmsMissingHint ?? 'max(V × I, 0)'}
           />
         </div>
         <p className="battery-note">
-          Daly 전류 부호는 문서 기준 방전 − / 충전 +입니다. Consumed energy는 충전·회생
-          구간을 제외한 <code>max(−V × I, 0)</code>만 적분하며 SOH나 고장을 판단하지 않습니다.
+          Daly 전류 부호는 방전 + / 충전 −입니다. Consumed energy는 충전·회생
+          구간을 제외한 <code>max(V × I, 0)</code>만 적분하며 SOH나 고장을 판단하지 않습니다.
         </p>
       </section>
     </main>

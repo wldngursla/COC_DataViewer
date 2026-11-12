@@ -41,11 +41,10 @@ export const CAN_ID_DALY_98 = dalyId(0x98); // 0x18984001
 /* ------------------------------------------------------------------ *
  * Battery sign convention
  *
- * ★ 확인 필요 (PROTOCOL_SPEC.md item D): 문서상 Daly 전류는 방전 −/충전 +.
- * 실측에서 반대로 확인되면 이 상수만 -1 → 1 로 바꾼다.
+ * User-requested sign reversal: discharge positive / charge negative.
  * "방전 중일 때 디코딩된 전류의 부호"를 의미한다.
  * ------------------------------------------------------------------ */
-export const DISCHARGE_SIGN: 1 | -1 = -1;
+export const DISCHARGE_SIGN: 1 | -1 = 1;
 
 /* ------------------------------------------------------------------ *
  * Byte helpers (b = 8-byte frame data, big/little per device)
@@ -142,11 +141,11 @@ export function decodeBmsVoltage(data: Uint8Array): number {
 }
 
 /**
- * Pack current [A]. B4-B5 BE, A = (raw - 30000) * 0.1.
- * Documented sign: 방전 −/충전 + (see DISCHARGE_SIGN).
+ * Pack current [A]. B4-B5 BE, A = (30000 - raw) * 0.1.
+ * User-requested sign: discharge + / charge − (see DISCHARGE_SIGN).
  */
 export function decodeBmsCurrent(data: Uint8Array): number {
-  return (beU16(data, 4) - 30000) * 0.1;
+  return (30000 - beU16(data, 4)) * 0.1;
 }
 
 /** State of charge [%]. B6-B7 BE, % = raw * 0.1 */

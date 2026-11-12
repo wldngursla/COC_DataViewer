@@ -46,6 +46,12 @@ describe('CAN decoder — 검산용 예시 (reference/CAN_SIGNALS_SELECTED.md)',
     expect(decodeBmsCurrent(frame({ 4: 0x75, 5: 0x30 }))).toBeCloseTo(0.0, 6);
   });
 
+  it.each([[29900, 10], [30000, 0], [30100, -10]])(
+    'BMS current raw %s → %s A after sign reversal', (raw, expected) => {
+      expect(decodeBmsCurrent(frame({ 4: raw >> 8, 5: raw & 255 }))).toBeCloseTo(expected, 6);
+    },
+  );
+
   it('BMS SOC: B6=0x02, B7=0x71 → 62.5 %', () => {
     expect(decodeBmsSoc(frame({ 6: 0x02, 7: 0x71 }))).toBeCloseTo(62.5, 6);
   });
