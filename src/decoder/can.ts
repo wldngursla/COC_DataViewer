@@ -64,13 +64,12 @@ const beU32 = (b: Uint8Array, hi: number): number =>
  * ------------------------------------------------------------------ */
 
 /**
- * Signed motor speed [rpm], B6-B7 LE: raw - 32000.
- * User-confirmed scale 1 and offset -32000. B6=0x00, B7=0x7D
- * gives raw 0x7D00 = 32000 and therefore 0 rpm. Sign is controller rotation,
- * not a verified vehicle-forward direction. Never silently invert it.
+ * Motor speed [rpm], B6-B7 LE: -(raw - 32000).
+ * User-requested sign reversal; scale and raw decoding are unchanged.
+ * B6=0x00, B7=0x7D gives raw 32000 and therefore 0 rpm.
  */
 export function decodeMotorRpm(data: Uint8Array): number {
-  return leU16(data, 6) - 32000;
+  return 32000 - leU16(data, 6);
 }
 
 /** Bus voltage [V]. B0-B1 LE, V = raw * 0.1 */

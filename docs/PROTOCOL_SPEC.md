@@ -183,6 +183,9 @@ expected = ((x & 0xFFFF) + (x >>> 16)) & 0xFFFF
 
 ## 5. 시간
 
+Motor RPM 표시 부호는 사용자 요청에 따라 반전한다: `RPM = -(raw - 32000) = 32000 - raw`.
+리틀엔디안 B6·B7, 배율 1 및 기준 raw=32000은 유지한다.
+
 - `timestamp` = **부팅 후 경과 밀리초** (`esp_timer_get_time() / 1000`), monotonic, u32.
   u32이므로 약 49.7일에 wrap (실주행에서는 무관).
 - 절대 시각 = `boot_time (epoch 초, UTC) + timestamp / 1000`

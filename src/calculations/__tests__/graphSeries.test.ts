@@ -26,7 +26,7 @@ const gps = (ts: number, speedRaw: number) =>
 
 // EZkontrol 0x180117EF: rpm = LE(B6,B7) - 32000
 const ezRpm = (ts: number, rpm: number) => {
-  const raw = Math.round(rpm + 32000);
+  const raw = Math.round(32000 - rpm);
   return canRecord({
     timestamp: ts,
     id: 0x180117ef,

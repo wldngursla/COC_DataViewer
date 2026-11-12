@@ -25,15 +25,15 @@ const frame = (bytes: Partial<Record<number, number>>): Uint8Array => {
 };
 
 describe('CAN decoder — 검산용 예시 (reference/CAN_SIGNALS_SELECTED.md)', () => {
-  it('Motor Speed: B6=0xD0, B7=0x84 → signed 2000 rpm', () => {
+  it('Motor Speed: B6=0xD0, B7=0x84 → signed -2000 rpm', () => {
     // User-confirmed scale 1, offset -32000.
-    expect(decodeMotorRpm(frame({ 6: 0xd0, 7: 0x84 }))).toBeCloseTo(2000, 6);
+    expect(decodeMotorRpm(frame({ 6: 0xd0, 7: 0x84 }))).toBeCloseTo(-2000, 6);
   });
 
   it.each([
     [0x00, 0x7d, 0],
-    [0x01, 0x7d, 1],
-    [0xff, 0x7c, -1],
+    [0x01, 0x7d, -1],
+    [0xff, 0x7c, 1],
   ])('Motor RPM B6=%s B7=%s → %s rpm', (b6, b7, rpm) => {
     expect(decodeMotorRpm(frame({ 6: b6, 7: b7 }))).toBe(rpm);
   });

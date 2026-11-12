@@ -85,7 +85,7 @@ export const GRAPH_SIGNALS: readonly GraphSignalDef[] = [
   { id: 'gpsSpeed', label: 'GPS Speed', unit: 'km/h', group: 'Vehicle' },
   { id: 'gpsCourse', label: 'GPS Course', unit: '°', group: 'Vehicle' },
   { id: 'accelerator', label: 'Accelerator Pedal', unit: '%', group: 'Vehicle', note: 'EZkontrol 0x180217EF byte 2' },
-  { id: 'motorRpm', label: 'Motor RPM', unit: 'rpm', group: 'Vehicle', note: 'EZkontrol 0x180117EF · RPM = LE(B6,B7) − 32000' },
+  { id: 'motorRpm', label: 'Motor RPM', unit: 'rpm', group: 'Vehicle', note: 'EZkontrol 0x180117EF · RPM = 32000 − LE(B6,B7)' },
   { id: 'wheelFl', label: 'Wheel FL', unit: 'km/h', group: 'Wheels', note: 'firmware-calculated float32' },
   { id: 'wheelFr', label: 'Wheel FR', unit: 'km/h', group: 'Wheels', note: 'firmware-calculated float32' },
   { id: 'wheelRl', label: 'Wheel RL', unit: 'km/h', group: 'Wheels', note: 'firmware-calculated float32' },
