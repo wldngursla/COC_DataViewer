@@ -7,10 +7,10 @@ const series = (points: GraphSeries['points']): GraphSeries => ({
 });
 
 describe('wheel envelope display', () => {
-  it('shows a robust median trend and preserves spikes in min/max bounds', () => {
+  it('uses the upper envelope instead of the misleading median', () => {
     const input = series([[0, 40], [0.1, 42], [0.2, 300], [0.3, 44], [0.4, 41]]);
     const output = withWheelEnvelope(input, 0.5, 'both');
-    expect(output.points).toEqual([[0.2, 42]]);
+    expect(output.points).toEqual([[0.2, 300]]);
     expect(output.envelope?.lower).toEqual([[0.2, 40]]);
     expect(output.envelope?.upper).toEqual([[0.2, 300]]);
     expect(output.envelope?.raw).toBe(input.points);

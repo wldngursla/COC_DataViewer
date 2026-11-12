@@ -8,7 +8,7 @@ export interface WheelEnvelope {
   windowSec: number;
 }
 
-/** Display-only time bins: median trend and exact min/max envelope.
+/** Display-only time bins: peak curve and exact min/max envelope.
  * Nulls and empty time bins split segments; never bridge missing measurements.
  * Source points remain untouched. Bin times stay within observed sample times.
  */
@@ -24,10 +24,8 @@ export function withWheelEnvelope(series: GraphSeries, windowSec: number, mode: 
   const flush = () => {
     if (values.length === 0) return;
     values.sort((a, b) => a - b);
-    const middle = Math.floor(values.length / 2);
-    const median = values.length % 2 ? values[middle] : (values[middle - 1] + values[middle]) / 2;
     const time = (times[0] + times[times.length - 1]) / 2;
-    points.push([time, median]);
+    points.push([time, values[values.length - 1]]);
     lower.push([time, values[0]]);
     upper.push([time, values[values.length - 1]]);
     values = []; times = [];

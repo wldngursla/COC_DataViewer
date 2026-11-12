@@ -130,11 +130,10 @@ function buildOption(seriesList: GraphSeries[], durationSec: number): echarts.EC
   const axisIndexes = seriesList.map((_, i) => i);
   const plotted = seriesList.flatMap((source, gridIndex) => {
     const envelope = source.envelope;
-    const main = { source, gridIndex, points: source.points, label: envelope ? '중앙값' : '', role: envelope ? 'trend' : 'source' };
+    const main = { source, gridIndex, points: source.points, label: envelope ? '구간 최고값' : '', role: envelope ? 'trend' : 'source' };
     return envelope ? [
       ...(envelope.raw ? [{ ...main, points: envelope.raw, label: '원본', role: 'raw' }] : []),
       { ...main, points: envelope.lower, label: '최저', role: 'bound' },
-      { ...main, points: envelope.upper, label: '최고', role: 'bound' },
       main,
     ] : [main];
   });
