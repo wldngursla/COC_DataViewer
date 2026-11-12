@@ -21,6 +21,7 @@ echarts.use([LineChart, GridComponent, TooltipComponent, TitleComponent, DataZoo
 
 /** 신호별 고정 색 (dataviz dark palette steps) — 순서가 아니라 신호 정체성에 고정 */
 const SIGNAL_COLOR: Record<SignalId, string> = {
+  rearDelta: '#fab219',
   gpsSpeed: '#3987e5',
   gpsCourse: '#64a2eb',
   accelerator: '#0ca30c',
@@ -59,6 +60,7 @@ const SIGNAL_COLOR: Record<SignalId, string> = {
 
 /** tooltip 소수 자릿수 */
 const SIGNAL_DECIMALS: Record<SignalId, number> = {
+  rearDelta: 2,
   gpsSpeed: 1,
   gpsCourse: 1,
   accelerator: 0,

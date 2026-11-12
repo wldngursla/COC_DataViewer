@@ -32,8 +32,10 @@ import { rawToG, rawToDps } from '../decoder/imu';
 import { analogRawToVolts } from '../decoder/analog';
 import { computeTimeRange } from './logSummary';
 import { computeBatteryTemperatures } from './batteryTemperature';
+import { rearWheelDifference } from './rearWheelDifference';
 
 export type SignalId =
+  | 'rearDelta'
   | `batteryTemp${number}`
   | 'gpsSpeed'
   | 'gpsCourse'
@@ -91,6 +93,7 @@ export const GRAPH_SIGNALS: readonly GraphSignalDef[] = [
   { id: 'wheelRl', label: 'Wheel RL', unit: 'km/h', group: 'Wheels', note: 'firmware-calculated float32' },
   { id: 'wheelRr', label: 'Wheel RR', unit: 'km/h', group: 'Wheels', note: 'firmware-calculated float32' },
   { id: 'wheelAverage', label: 'Wheel Average', unit: 'km/h', group: 'Wheels' },
+  { id: 'rearDelta', label: 'Rear Δ: RR − RL (0.5s peaks)', unit: 'km/h', group: 'Vehicle', note: '동일 0.5초 최고값 차이 · 양수=오른쪽이 빠름 · 슬립 판정 아님' },
   { id: 'ezBusVoltage', label: 'Motor Bus Voltage', unit: 'V', group: 'Motor', note: 'EZkontrol 0x180117EF' },
   { id: 'ezBusCurrent', label: 'Motor Bus Current', unit: 'A', group: 'Motor', note: 'EZkontrol 0x180117EF' },
   { id: 'controllerTemp', label: 'Controller Temp', unit: '°C', group: 'Motor', note: 'EZkontrol 0x180217EF' },
@@ -212,6 +215,7 @@ export function createGraphSeriesProvider(result: ParsedLog): GraphSeriesProvide
     wheelRl: hasWheelSpeed,
     wheelRr: hasWheelSpeed,
     wheelAverage: hasWheelSpeed,
+    rearDelta: hasWheelSpeed,
     accX: result.gyro.count > 0,
     accY: result.gyro.count > 0,
     accZ: result.gyro.count > 0,
@@ -267,6 +271,7 @@ export function createGraphSeriesProvider(result: ParsedLog): GraphSeriesProvide
   };
 
   function build(id: SignalId): GraphPoint[] {
+    if (id === 'rearDelta') return rearWheelDifference(build('wheelRl'), build('wheelRr'));
     if (id.startsWith('batteryTemp')) {
       const samples = temperatures[Number(id.slice(11)) - 1] ?? [];
       return toPoints(samples.map((s) => s.timestampMs), samples.map((s) => s.temperatureC), t0Ms);

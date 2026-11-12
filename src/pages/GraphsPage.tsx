@@ -26,6 +26,7 @@ import { TrackMap } from '../components/TrackMap';
 import { formatDuration, formatElapsedTime } from '../ui/format';
 import { withWheelEnvelope, type WheelDisplayMode } from '../calculations/wheelEnvelope';
 import { WheelEnvelopeControls } from '../components/WheelEnvelopeControls';
+import { GForceMeter } from '../components/GForceMeter';
 
 const DEFAULT_ON: readonly SignalId[] = [
   'gpsSpeed',
@@ -33,6 +34,7 @@ const DEFAULT_ON: readonly SignalId[] = [
   'motorRpm',
   'wheelFl',
   'wheelFr',
+  'rearDelta',
   'current',
   'batteryTemp1',
   'batteryTemp2',
@@ -220,6 +222,7 @@ export function GraphsPage({
             <span>{track.points.length.toLocaleString('en-US')} GPS samples</span>
           )}
         </div>
+        <div className="map-gforce-layout">
         {track.points.length === 0 ? (
           <div className="track-empty graphs-track-empty">
             <strong>N/A</strong>
@@ -233,6 +236,8 @@ export function GraphsPage({
             compact
           />
         )}
+        <GForceMeter result={run.result} timestampMs={selectedTimestamp} />
+        </div>
       </section>
 
       <section className="playback-panel" aria-label="Playback controls and current values">

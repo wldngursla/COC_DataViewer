@@ -61,6 +61,7 @@ describe('createGraphSeriesProvider', () => {
     expect(GRAPH_SIGNALS.map((d) => d.id)).toEqual([
       'gpsSpeed', 'gpsCourse', 'accelerator', 'motorRpm',
       'wheelFl', 'wheelFr', 'wheelRl', 'wheelRr', 'wheelAverage',
+      'rearDelta',
       'ezBusVoltage', 'ezBusCurrent', 'controllerTemp', 'motorTemp',
       'accX', 'accY', 'accZ', 'gyroX', 'gyroY', 'yawRate', 'imuTemperatureRaw',
       'ain1', 'ain2', 'ain3', 'ain4', 'ain5', 'ain6', 'ain7', 'ain8',

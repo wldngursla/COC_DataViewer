@@ -1,6 +1,9 @@
 /** Leaflet track renderer. All decoded route and telemetry data stay local. */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ParsedLog } from '../parser/types';
+import { smoothTrack } from '../calculations/smoothTrack';
+import { GForceMeter } from './GForceMeter';
 import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { TrackAnalysis } from '../calculations/trackAnalysis';
@@ -11,6 +14,8 @@ interface TrackMapProps {
   selectedPointIndex: number | null;
   onSelectPoint: (pointIndex: number) => void;
   compact?: boolean;
+  result?: ParsedLog;
+  gForceTimestampMs?: number;
 }
 
 const SPEED_COLORS = ['#3987e5', '#199e70', '#c98500', '#d95926', '#d03b3b'] as const;
@@ -26,11 +31,15 @@ function speedColor(speedKmh: number, minimumKmh: number, maximumKmh: number): s
 }
 
 export function TrackMap({
-  track,
+  track: rawTrack,
   selectedPointIndex,
   onSelectPoint,
   compact = false,
+  result,
+  gForceTimestampMs,
 }: TrackMapProps) {
+  const [smoothed, setSmoothed] = useState(true);
+  const track = useMemo(() => smoothed ? smoothTrack(rawTrack) : rawTrack, [rawTrack, smoothed]);
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const selectedMarkerRef = useRef<L.CircleMarker | null>(null);
@@ -166,6 +175,9 @@ export function TrackMap({
   }, [track, selectedPointIndex]);
 
   return (
+    <div>
+    <div className="map-smoothing-bar"><label><input type="checkbox" checked={smoothed} onChange={(event) => setSmoothed(event.currentTarget.checked)} /> GPS 궤적 강한 평활화</label><span>1초 중앙값 + 0.8초 저역통과 · 표시 전용</span></div>
+    <div className={gForceTimestampMs === undefined ? undefined : 'map-gforce-layout'}>
     <div className={`track-map-shell${compact ? ' track-map-shell-compact' : ''}`}>
       <div
         ref={containerRef}
@@ -183,6 +195,9 @@ export function TrackMap({
         <span className="speed-legend-gradient" aria-hidden="true" />
         <span>High speed</span>
       </div>
+    </div>
+    {result && gForceTimestampMs !== undefined && <GForceMeter result={result} timestampMs={gForceTimestampMs} />}
+    </div>
     </div>
   );
 }

@@ -101,6 +101,8 @@ export function VehiclePage({
               track={track}
               selectedPointIndex={selectedPointIndex}
               onSelectPoint={handleSelectPoint}
+              result={run.result}
+              gForceTimestampMs={selectedTimestampMs ?? track.points[selectedPointIndex]?.timestampMs ?? 0}
             />
             <aside className="selected-point-panel" aria-label="Selected track point telemetry">
               <div className="selected-point-heading">
