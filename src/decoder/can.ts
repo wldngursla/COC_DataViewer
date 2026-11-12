@@ -64,11 +64,13 @@ const beU32 = (b: Uint8Array, hi: number): number =>
  * ------------------------------------------------------------------ */
 
 /**
- * Motor speed [rpm]. B6-B7 LE, rpm = raw * 0.1 - 2000.
- * (문서의 검산 예시에 적힌 −32000은 오타 — 표와 펌웨어 main.h 모두 −2000)
+ * Signed motor speed [rpm], B6-B7 LE: raw - 32000.
+ * User-confirmed scale 1 and offset -32000. B6=0x00, B7=0x7D
+ * gives raw 0x7D00 = 32000 and therefore 0 rpm. Sign is controller rotation,
+ * not a verified vehicle-forward direction. Never silently invert it.
  */
 export function decodeMotorRpm(data: Uint8Array): number {
-  return leU16(data, 6) * 0.1 - 2000;
+  return leU16(data, 6) - 32000;
 }
 
 /** Bus voltage [V]. B0-B1 LE, V = raw * 0.1 */

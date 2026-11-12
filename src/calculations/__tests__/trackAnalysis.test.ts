@@ -44,7 +44,7 @@ function gps(
 }
 
 function ezRpm(timestamp: number, rpm: number): Uint8Array {
-  const raw = Math.round((rpm + 2000) * 10);
+  const raw = Math.round(rpm + 32000);
   return canRecord({
     timestamp,
     id: CAN_ID_EZ_MSG1,

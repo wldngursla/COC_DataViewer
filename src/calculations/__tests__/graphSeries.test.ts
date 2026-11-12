@@ -24,9 +24,9 @@ const gps = (ts: number, speedRaw: number) =>
     courseRaw: 0,
   });
 
-// EZkontrol 0x180117EF: rpm = LE(B6,B7)*0.1 - 2000
+// EZkontrol 0x180117EF: rpm = LE(B6,B7) - 32000
 const ezRpm = (ts: number, rpm: number) => {
-  const raw = Math.round((rpm + 2000) * 10);
+  const raw = Math.round(rpm + 32000);
   return canRecord({
     timestamp: ts,
     id: 0x180117ef,
@@ -103,7 +103,7 @@ describe('createGraphSeriesProvider', () => {
     expect(p.durationSec).toBe(2);
   });
 
-  it('Motor RPM: EZkontrol frames only, decoded with -2000 offset', () => {
+  it('Motor RPM: EZkontrol frames only, decoded with -32000 offset', () => {
     const log = parseLog(
       buildLog([boot(), ezRpm(500, 1400), daly90(600, 90, 0, 80), ezRpm(1500, 4500)]),
     );
