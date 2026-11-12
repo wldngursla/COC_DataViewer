@@ -6,6 +6,7 @@
 import { useMemo } from 'react';
 import { computeBatteryAnalysis } from '../calculations/batteryAnalysis';
 import { StatTile } from '../components/StatTile';
+import { BatteryTemperatures } from '../components/BatteryTemperatures';
 import type { LoadedRun } from '../state/loadedRun';
 import { formatCount } from '../ui/format';
 
@@ -41,6 +42,7 @@ export function BatteryPage({ run }: BatteryPageProps) {
         <span className="file-name">{run.fileName}</span>
       </header>
 
+      <BatteryTemperatures result={run.result} />
       <section className="summary-section">
         <h2>Energy performance</h2>
         <div className="stat-grid battery-kpi-grid">

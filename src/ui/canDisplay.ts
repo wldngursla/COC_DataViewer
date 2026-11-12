@@ -1,4 +1,5 @@
 /** Presentation-ready descriptions for the CAN signals approved in the decoder spec. */
+import { CAN_ID_DALY_96, decodeBatteryTemperatureFrame } from '../calculations/batteryTemperature';
 
 import {
   CAN_ID_DALY_90,
@@ -31,6 +32,8 @@ const listFaults = (faults: readonly string[]): string =>
 
 export function describeCanFrame(id: number, data: Uint8Array): CanFrameDisplay {
   switch (id >>> 0) {
+    case CAN_ID_DALY_96:
+      return { source: 'Daly BMS 0x96', summary: decodeBatteryTemperatureFrame(data).map((t) => `Sensor ${t.sensor}: ${t.temperatureC} °C`).join(' · '), hasFault: false };
     case CAN_ID_EZ_MSG1:
       return {
         source: 'EZkontrol Msg1',

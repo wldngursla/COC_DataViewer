@@ -5,7 +5,7 @@
  * Summary를 보여주고 새 파일을 받을 수 있다.
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { parseLogFile } from '../parser/parseLogFile';
 import { LogParseError } from '../parser/types';
 import type { LoadedRun } from '../state/loadedRun';
@@ -49,10 +49,35 @@ interface FileLoadPageProps {
 
 export function FileLoadPage({ run, onLoaded }: FileLoadPageProps) {
   const [state, setState] = useState<LoadState>({ phase: 'idle' });
+  const onLoadedRef = useRef(onLoaded);
+  const loadVersion = useRef(0);
+  useEffect(() => { onLoadedRef.current = onLoaded; }, [onLoaded]);
+  useEffect(() => {
+    if (run !== null) return;
+    const version = ++loadVersion.current;
+    let cancelled = false;
+    const controller = new AbortController();
+    const info = { name: '00000175-2026-09-20-16-26-47.log', size: 2452032 };
+    void fetch(`${import.meta.env.BASE_URL}data/default-run.bin`, { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('기본 로그를 불러올 수 없습니다. 다른 파일을 선택해 주세요.');
+        const file = new File([await response.blob()], info.name);
+        if (cancelled || version !== loadVersion.current) return;
+        setState({ phase: 'parsing', file: { ...info, size: file.size }, progress: 0 });
+        const result = await parseLogFile(file, { onProgress: (progress) => {
+          if (!cancelled && version === loadVersion.current) setState({ phase: 'parsing', file: info, progress });
+        } });
+        if (!cancelled && version === loadVersion.current) onLoadedRef.current({ fileName: file.name, fileSize: file.size, result });
+      }).catch((err: unknown) => {
+        if (!cancelled && !controller.signal.aborted && version === loadVersion.current) setState({ phase: 'error', file: info, message: errorMessage(err) });
+      });
+    return () => { cancelled = true; controller.abort(); };
+  }, [run]);
 
   const handleFile = useCallback(
     (file: File) => {
       if (state.phase === 'parsing') return; // 드롭 이벤트는 disabled를 우회할 수 있음
+      loadVersion.current++;
       const info: FileInfo = { name: file.name, size: file.size };
       setState({ phase: 'parsing', file: info, progress: 0 });
 
@@ -81,6 +106,8 @@ export function FileLoadPage({ run, onLoaded }: FileLoadPageProps) {
 
   return (
     <main className="page">
+      <h1>로그 파일 변경</h1>
+      <p>첫 접속에는 기본 주행 로그를 표시합니다. 다른 로그는 아래에서 선택하거나 끌어다 놓으세요.</p>
       <FileDropZone onFile={handleFile} disabled={parsing} compact={showLastRun} />
 
       {shownFile !== null && (

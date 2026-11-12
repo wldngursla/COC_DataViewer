@@ -31,8 +31,10 @@ import { rawToCourseDeg, rawToKmh } from '../decoder/gps';
 import { rawToG, rawToDps } from '../decoder/imu';
 import { analogRawToVolts } from '../decoder/analog';
 import { computeTimeRange } from './logSummary';
+import { computeBatteryTemperatures } from './batteryTemperature';
 
 export type SignalId =
+  | `batteryTemp${number}`
   | 'gpsSpeed'
   | 'gpsCourse'
   | 'accelerator'
@@ -112,6 +114,7 @@ export const GRAPH_SIGNALS: readonly GraphSignalDef[] = [
   { id: 'current', label: 'Battery Current', unit: 'A', group: 'Battery', note: '방전 − / 충전 + (문서 기준)' },
   { id: 'power', label: 'Battery Power', unit: 'kW', group: 'Battery', note: 'P = V × I / 1000 (signed)' },
   { id: 'remainingCapacity', label: 'Remaining Capacity', unit: 'Ah', group: 'Battery', note: 'Daly 0x18934001' },
+  ...Array.from({ length: 24 }, (_, i): GraphSignalDef => ({ id: `batteryTemp${i + 1}`, label: `Battery Temperature ${i + 1}`, unit: '°C', group: 'Battery', note: 'Daly 0x18964001 · raw − 40' })),
 ];
 
 /** [elapsedSec, value] — 소스 공백 위치에는 [elapsedSec, null]이 삽입된다 */
@@ -191,6 +194,7 @@ export function createGraphSeriesProvider(result: ParsedLog): GraphSeriesProvide
   const hasWheelSpeed =
     result.digital.format === 'wheel-speed-kmh' && result.digital.count > 0;
   const hasAnalog = result.analog.count > 0;
+  const temperatures = computeBatteryTemperatures(can);
 
   const availability: Record<SignalId, boolean> = {
     gpsSpeed: result.gps.count > 0,
@@ -261,6 +265,10 @@ export function createGraphSeriesProvider(result: ParsedLog): GraphSeriesProvide
   };
 
   function build(id: SignalId): GraphPoint[] {
+    if (id.startsWith('batteryTemp')) {
+      const samples = temperatures[Number(id.slice(11)) - 1] ?? [];
+      return toPoints(samples.map((s) => s.timestampMs), samples.map((s) => s.temperatureC), t0Ms);
+    }
     switch (id) {
       case 'gpsSpeed': {
         const t: number[] = [];
@@ -389,19 +397,20 @@ export function createGraphSeriesProvider(result: ParsedLog): GraphSeriesProvide
         );
       }
     }
+    return [];
   }
 
   const cache = new Map<SignalId, GraphSeries>();
 
   return {
     durationSec,
-    isAvailable: (id) => availability[id],
+    isAvailable: (id) => id.startsWith('batteryTemp') ? (temperatures[Number(id.slice(11)) - 1]?.length ?? 0) > 0 : availability[id],
     get(id) {
       let series = cache.get(id);
       if (series === undefined) {
         const def = GRAPH_SIGNALS.find((d) => d.id === id);
         if (def === undefined) throw new Error(`unknown signal: ${id}`);
-        series = availability[id]
+        series = (id.startsWith('batteryTemp') ? (temperatures[Number(id.slice(11)) - 1]?.length ?? 0) > 0 : availability[id])
           ? { def, available: true, points: build(id) }
           : { def, available: false, points: [] };
         cache.set(id, series);

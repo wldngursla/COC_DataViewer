@@ -38,7 +38,7 @@ function App() {
         <div className="app-header-right">
           {run !== null && (
             <button type="button" className="btn-file" onClick={() => setView('load')}>
-              <span className="btn-file-name">{run.fileName}</span> · 파일
+              <span className="btn-file-name">{run.fileName}</span> · 파일 변경
             </button>
           )}
           <div className="app-meta">V1 · offline</div>

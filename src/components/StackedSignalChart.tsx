@@ -54,6 +54,7 @@ const SIGNAL_COLOR: Record<SignalId, string> = {
   voltage: '#3987e5',
   power: '#d95926',
   remainingCapacity: '#9085e9',
+  ...Object.fromEntries(Array.from({ length: 24 }, (_, i) => [`batteryTemp${i + 1}`, ['#e66767', '#3987e5', '#199e70', '#c98500'][i % 4]])),
 };
 
 /** tooltip 소수 자릿수 */
@@ -91,6 +92,7 @@ const SIGNAL_DECIMALS: Record<SignalId, number> = {
   current: 1,
   power: 2,
   remainingCapacity: 3,
+  ...Object.fromEntries(Array.from({ length: 24 }, (_, i) => [`batteryTemp${i + 1}`, 0])),
 };
 
 /** 초 → "m:ss" (축 라벨) */

@@ -65,6 +65,7 @@ describe('createGraphSeriesProvider', () => {
       'accX', 'accY', 'accZ', 'gyroX', 'gyroY', 'yawRate', 'imuTemperatureRaw',
       'ain1', 'ain2', 'ain3', 'ain4', 'ain5', 'ain6', 'ain7', 'ain8',
       'soc', 'voltage', 'current', 'power', 'remainingCapacity',
+      ...Array.from({ length: 24 }, (_, i) => `batteryTemp${i + 1}`),
     ]);
   });
 

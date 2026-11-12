@@ -32,6 +32,8 @@ const DEFAULT_ON: readonly SignalId[] = [
   'wheelFl',
   'wheelFr',
   'current',
+  'batteryTemp1',
+  'batteryTemp2',
 ];
 
 const GROUP_ORDER: readonly SignalGroup[] = [
