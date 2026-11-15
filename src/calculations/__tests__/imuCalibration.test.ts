@@ -10,7 +10,7 @@ import { LogType } from '../../parser/types';
 import { rawToG, rawToDps } from '../../decoder/imu';
 import { analyzeImu, defaultImuSettings, gpsImuReference, courseDifference, filterImuVectors, validateImuSettings, type ImuSettings } from '../imuCalibration';
 import { eulerRotation, mappedRotation, properRotation, determinant, transform, propagateUp, norm, type Vec3, type Mat3 } from '../imuMath';
-import { imuGForce, selectImuGForce } from '../imuGForce';
+import { filteredGForceMode, imuGForce, selectImuGForce } from '../imuGForce';
 import { defaultRearSettings } from '../rearCalibration';
 import { exportTables } from '../../export/tables';
 import { buildWorkbook } from '../../export/workbook';
@@ -60,10 +60,19 @@ describe('IMU calibration physics and processing', () => {
     expect(a.rows.every((r) => r.filteredLinear === null)).toBe(true);
     expect(imuGForce(a, 'filtered').samples).toHaveLength(0);
     expect(imuGForce(a, 'raw').samples.length).toBeGreaterThan(0);
+    expect(filteredGForceMode(a)).toBe('sensorAdjusted');
+    const preview = imuGForce(a, filteredGForceMode(a));
+    expect(preview.samples.length).toBeGreaterThan(0);
+    expect(preview.maxG).toBeLessThan(0.001);
+    expect(imuGForce(a, 'raw').maxG).toBeGreaterThan(0.6);
+    expect(selectImuGForce(a, 'sensorAdjusted', 1000)?.magnitude).toBeLessThan(0.001);
   });
   it('does not infer a stop from IMU constancy without GPS; accepts explicitly confirmed manual interval', () => {
     const p = stationaryLog({ gpsMissing: true });
     expect(analyzeImu(p, manual()).stationary).toBeNull();
+    const unknown = analyzeImu(p);
+    expect(filteredGForceMode(unknown)).toBe('sensorFiltered');
+    expect(selectImuGForce(unknown, 'sensorFiltered', 1000)).not.toBeNull();
     const s = { ...manual(), autoStationary: false, stationaryStartMs: 0, stationaryEndMs: 3000, stationaryConfirmed: true };
     expect(analyzeImu(p, s).stationary?.source).toBe('MANUAL_CONFIRMED_STABLE');
     expect(analyzeImu(p, { ...s, stationaryConfirmed: false }).stationary).toBeNull();
@@ -162,6 +171,11 @@ describe('IMU calibration physics and processing', () => {
     const p = parseLog(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
     const a = analyzeImu(p);
     expect(a.rows).toHaveLength(p.gyro.count); expect(a.rotation).toBeNull();
+    const previewMode = filteredGForceMode(a);
+    expect(previewMode).toBe('sensorAdjusted');
+    const preview = imuGForce(a, previewMode);
+    expect(preview.samples.length).toBeGreaterThan(20000);
+    expect(selectImuGForce(a, previewMode, preview.samples[0].timestampMs)).not.toBeNull();
     const report = { imu: p.gyro.count, gps: p.gps.count, stationary: a.stationary, calibrations: a.calibrations, status: a.status, rotation: a.rotation, candidateRotation: a.candidateRotation, training: a.axisTraining, validation: a.axisValidation, axisReasons: a.axisReasons, forwardError: a.forwardError, turnValidation: a.turnValidation, rawYawError: a.rawYawError, yawError: a.yawError, lateralError: a.lateralError, lag: a.lag, cadence: a.cadence, counts: a.counts };
     writeFileSync(join(tmpdir(), 'coc-imu-calibration-report.json'), JSON.stringify(report, null, 2));
   });
@@ -185,6 +199,7 @@ describe('IMU calibration physics and processing', () => {
     expect(a.stationary).not.toBeNull(); expect(a.axisTraining).toBeGreaterThan(40); expect(a.axisValidation).toBeGreaterThan(20);
     expect(a.forwardError.r2!).toBeGreaterThan(0.95);
     expect(a.rotation).not.toBeNull(); expect(properRotation(a.rotation!)).toBe(true);
+    expect(filteredGForceMode(a)).toBe('filtered');
     expect(a.rotation![0][0]).toBeCloseTo(r[0][0], 1);
     expect(a.yawError.rmse!).toBeLessThan(0.5);
     expect(a.lateralError.rmse!).toBeLessThan(0.03);

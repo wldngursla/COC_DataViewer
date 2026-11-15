@@ -44,6 +44,8 @@ Excel preserves original IMU rows/counts/file order and original raw/decoded col
 
 ## Bundled real-run findings
 
+G-force preview update: the Filtered button now has a visible selected state. When trusted vehicle linear acceleration exists, it uses that vehicle frame. Otherwise it displays filtered **sensor X/Y changes relative to the initial stationary vector**, explicitly labeled as a stationary-reference preview, not vehicle longitudinal/lateral or dynamically gravity-compensated acceleration. This fixed initial reference is also used after reconnects for visual comparison; remounting, bias changes and pitch/roll can affect the preview. Without any stationary reference it shows filtered sensor specific force with gravity included. This preview never changes the calibration gates or strict vehicle outputs. Raw remains a separate button, and `GForce_Filtered_Preview` exports the displayed frame/method and values.
+
 No separate Excel file was attached with this request. The supplied sensor counts match the unchanged bundled `public/data/default-run.bin` (original `00000175-2026-09-20-16-26-47.log`): IMU 54,867 / GPS 7,216. The automated test emits `coc-imu-calibration-report.json` into the system temp directory.
 
 * First stable stop: **78221–81211 ms**, 296 samples; GPS coverage 100%.

@@ -13,7 +13,7 @@ import { computeBatteryTemperatures } from '../calculations/batteryTemperature';
 import { computeDataHealth } from '../calculations/dataHealth';
 import { analyzeRearWheels, defaultRearSettings, type RearSettings } from '../calculations/rearCalibration';
 import { analyzeImu, defaultImuSettings, type ImuSettings } from '../calculations/imuCalibration';
-import { imuGForce } from '../calculations/imuGForce';
+import { filteredGForceMode, imuGForce } from '../calculations/imuGForce';
 
 export type Cell = string | number | boolean | null;
 export interface ExportTable { name: string; headers: string[]; rows: () => Iterable<Cell[]> }
@@ -145,6 +145,10 @@ export function exportTables(run: LoadedRun, rearSettings: RearSettings = defaul
   });
   table('GForce_Sensor_Raw', [...timeHeaders, 'Raw sensor X specific force (g)', 'Raw sensor Y specific force (g)', 'Raw sensor XY magnitude (g)'], function* () {
     for (const s of imuGForce(imu, 'raw').samples) yield [...time(s.timestampMs), s.x, s.y, s.magnitude];
+  });
+  table('GForce_Filtered_Preview', [...timeHeaders, 'Display horizontal (g)', 'Display vertical (g)', 'Display magnitude (g)', 'Frame and method'], function* () {
+    const mode = filteredGForceMode(imu);
+    for (const s of imuGForce(imu, mode).samples) yield [...time(s.timestampMs), s.x, s.y, s.magnitude, mode === 'filtered' ? 'Vehicle Y/X linear' : mode === 'sensorAdjusted' ? 'Sensor X/Y minus initial stationary reference; NOT vehicle linear acceleration' : 'Sensor X/Y filtered specific force; gravity included'];
   });
   table('GPS_IMU_Reference', [...timeHeaders, 'GPS speed (km/h)', 'GPS longitudinal (m/s2)', 'GPS yaw CCW (deg/s)', 'GPS lateral (g)'], function* () {
     for (const r of imu.gps) yield [...time(r.t), r.speed, r.acceleration, r.yaw, r.lateral];
