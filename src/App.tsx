@@ -10,6 +10,7 @@ import { DataHealthPage } from './pages/DataHealthPage';
 import { BatteryPage } from './pages/BatteryPage';
 import { VehiclePage } from './pages/VehiclePage';
 import { DataExplorerPage } from './pages/DataExplorerPage';
+import { ExcelExport } from './components/ExcelExport';
 
 function App() {
   // 파싱 결과는 App이 소유한다 — 탭을 오가도 같은 run을 재파싱 없이 공유
@@ -36,6 +37,7 @@ function App() {
         </div>
         <AppNav active={view} runLoaded={run !== null} onSelect={setView} />
         <div className="app-header-right">
+          <ExcelExport run={run} />
           {run !== null && (
             <button type="button" className="btn-file" onClick={() => setView('load')}>
               <span className="btn-file-name">{run.fileName}</span> · 파일 변경

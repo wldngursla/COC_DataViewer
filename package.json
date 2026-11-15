@@ -14,9 +14,13 @@
   "dependencies": {
     "echarts": "^6.1.0",
     "echarts-for-react": "^3.0.6",
+    "exceljs": "^4.4.0",
     "leaflet": "^1.9.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
+  },
+  "overrides": {
+    "exceljs": { "uuid": "^11.1.1" }
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
