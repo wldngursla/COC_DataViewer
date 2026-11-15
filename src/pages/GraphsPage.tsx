@@ -27,6 +27,7 @@ import { formatDuration, formatElapsedTime } from '../ui/format';
 import { withWheelEnvelope, type WheelDisplayMode } from '../calculations/wheelEnvelope';
 import { WheelEnvelopeControls } from '../components/WheelEnvelopeControls';
 import { GForceMeter } from '../components/GForceMeter';
+import { RearWheelLab } from '../components/RearWheelLab';
 
 const DEFAULT_ON: readonly SignalId[] = [
   'gpsSpeed',
@@ -304,6 +305,7 @@ export function GraphsPage({
       </section>
 
       <WheelEnvelopeControls mode={wheelMode} windowSec={wheelWindow} onMode={setWheelMode} onWindow={setWheelWindow} />
+      <RearWheelLab run={run} />
       {activeSeries.length > 0 ? (
         <StackedSignalChart
           seriesList={activeSeries}

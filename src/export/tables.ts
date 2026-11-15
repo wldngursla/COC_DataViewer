@@ -12,11 +12,14 @@ import { describeCanFrame } from '../ui/canDisplay';
 import { computeBatteryTemperatures } from '../calculations/batteryTemperature';
 import { computeGForce } from '../calculations/gForce';
 import { computeDataHealth } from '../calculations/dataHealth';
+import { analyzeRearWheels, defaultRearSettings, type RearSettings } from '../calculations/rearCalibration';
 
 export type Cell = string | number | boolean | null;
 export interface ExportTable { name: string; headers: string[]; rows: () => Iterable<Cell[]> }
-export function exportTables(run: LoadedRun): ExportTable[] {
+export function exportTables(run: LoadedRun, rearSettings: RearSettings = defaultRearSettings()): ExportTable[] {
   const p = run.result;
+  const rear = analyzeRearWheels(p, rearSettings);
+  const rearByIndex = new Map(rear.rows.map((r) => [r.sourceIndex, r]));
   const tables: ExportTable[] = [];
   const table = (name: string, headers: string[], rows: () => Iterable<Cell[]>) => tables.push({ name, headers, rows });
   const time = (t: number): Cell[] => [t, p.bootTimeEpochSec === null ? null : p.bootTimeEpochSec + t / 1000];
@@ -49,6 +52,20 @@ export function exportTables(run: LoadedRun): ExportTable[] {
     yield ['Notes', 'Analysis', 'Separate derived graph series; may contain null gap markers and smoothing. Not raw measurements.'];
     yield ['Notes', 'Precision', 'Excel stores ~15 significant decimal digits. Integer raw columns preserve exact sensor counts. Non-finite values are explicit text.'];
     yield ['Notes', 'Counts', 'Motor/BMS/Accelerator are CAN subsets; Analysis contains derived duplicates. Do not sum these as raw record counts.'];
+    for (const [key, value] of Object.entries(rear.settings)) yield ['Rear calibration settings', key, Array.isArray(value) ? JSON.stringify(value) : value];
+    for (const [key, value] of Object.entries(rear.motorComparison.gps)) yield ['Motor vs GPS', key, value];
+    for (let w = 0; w < 2; w++) for (const stage of ['raw', 'corrected', 'filtered'] as const) for (const [key, value] of Object.entries(rear.motorComparison.wheels[w][stage])) yield ['Hall vs Motor', `${w ? 'RR' : 'RL'} ${stage} ${key}`, value];
+    for (let w = 0; w < 2; w++) {
+      const name = w ? 'RR' : 'RL'; const fit = rear.fits[w]; const applied = rear.coefficients[w];
+      yield ['Rear calibration', `${name} applied method`, applied.applied];
+      yield ['Rear calibration', `${name} applied a`, applied.a]; yield ['Rear calibration', `${name} applied b`, applied.b];
+      yield ['Rear calibration', `${name} estimated a`, fit.a]; yield ['Rear calibration', `${name} confidence`, fit.reason];
+      yield ['Rear calibration', `${name} training interval ms`, JSON.stringify(fit.interval)];
+      yield ['Rear calibration', `${name} training count`, fit.training]; yield ['Rear calibration', `${name} validation count`, fit.validation];
+      yield ['Rear calibration', `${name} lag ms`, fit.lagMs];
+      for (const [key, value] of Object.entries(fit.validationFit)) yield ['Rear model validation', `${name} ${key}`, value];
+      for (const key of ['raw', 'corrected', 'filtered', 'commonRaw'] as const) for (const [metric, value] of Object.entries(fit[key])) yield ['Rear holdout metrics', `${name} ${key} ${metric}`, value];
+    }
   });
   table('BOOT', [...timeHeaders, 'Protocol version', 'Feature flags', 'MAC', 'Boot UTC (epoch s raw)'], function* () {
     if (p.boot) yield [...time(p.boot.timestamp), p.boot.protocolVersion, p.boot.featureFlags, p.boot.mac, p.boot.bootTime];
@@ -65,8 +82,11 @@ export function exportTables(run: LoadedRun): ExportTable[] {
     for (let i = 0; i < p.analog.count; i++) yield [...time(p.analog.timestamp[i]), ...p.analog.ain.map((a) => a[i]), ...p.analog.ain.map((a) => analogRawToVolts(a[i]))];
   });
   const digital = p.digital;
-  table('Digital', [...timeHeaders, ...(digital.format === 'gpio-level' ? ['DIN1 raw', 'DIN2 raw', 'DIN3 raw', 'DIN4 raw'] : ['FL stored (km/h)', 'FR stored (km/h)', 'RL stored (km/h)', 'RR stored (km/h)'])], function* () {
-    for (let i = 0; i < digital.count; i++) yield [...time(digital.timestamp[i]), ...(digital.format === 'gpio-level' ? digital.din : digital.wheelSpeedKmh).map((a) => a[i])];
+  table('Digital', [...timeHeaders, ...(digital.format === 'gpio-level' ? ['DIN1 raw', 'DIN2 raw', 'DIN3 raw', 'DIN4 raw'] : ['FL stored (km/h)', 'FR stored (km/h)', 'RL stored (km/h)', 'RR stored (km/h)']), 'RL Corrected (km/h)', 'RR Corrected (km/h)', 'RL Filtered (km/h)', 'RR Filtered (km/h)', 'RL Outlier flag', 'RR Outlier flag', 'RL Quality status', 'RR Quality status'], function* () {
+    for (let i = 0; i < digital.count; i++) { const r = rearByIndex.get(i)!; yield [...time(digital.timestamp[i]), ...(digital.format === 'gpio-level' ? digital.din : digital.wheelSpeedKmh).map((a) => a[i]), ...r.corrected, ...r.filtered, ...r.outlier, ...r.flags]; }
+  });
+  table('WheelSpeed_Analysis', [...timeHeaders, 'GPS reference (km/h)', 'Motor-derived (km/h)', 'RL Raw (km/h)', 'RR Raw (km/h)', 'RL Corrected (km/h)', 'RR Corrected (km/h)', 'RL Filtered (km/h)', 'RR Filtered (km/h)', 'RL lag-matched GPS (km/h)', 'RR lag-matched GPS (km/h)', 'RL corrected minus GPS (km/h)', 'RR corrected minus GPS (km/h)', 'Yaw expected RR minus RL (km/h)', 'RL Quality', 'RR Quality'], function* () {
+    for (const r of rear.rows) yield [...time(r.t), r.gps, r.motor, ...r.raw, ...r.corrected, ...r.filtered, ...r.matchedGps, ...r.corrected.map((v, w) => v === null || r.matchedGps[w] === null ? null : v - r.matchedGps[w]!), r.expectedDelta, ...r.flags];
   });
   table('Events', [...timeHeaders, 'Type raw', 'Type', 'Message'], function* () { for (const e of p.events) yield [...time(e.timestamp), e.type, LOG_TYPE_NAMES[e.type], e.message]; });
   const c = p.can;
