@@ -186,11 +186,11 @@ export function GraphsPage({
       </div>
 
       <div className="signal-panel">
-        {GROUP_ORDER.map((group) => (
+        {GROUP_ORDER.filter((group) => GRAPH_SIGNALS.some((definition) => definition.group === group && provider.isAvailable(definition.id))).map((group) => (
           <div key={group} className="signal-group">
             <div className="signal-group-label">{GROUP_LABEL[group]}</div>
             <div className="signal-toggles">
-              {GRAPH_SIGNALS.filter((definition) => definition.group === group).map((definition) => {
+              {GRAPH_SIGNALS.filter((definition) => definition.group === group && provider.isAvailable(definition.id)).map((definition) => {
                 const available = provider.isAvailable(definition.id);
                 const on = available && enabled.has(definition.id);
                 return (
