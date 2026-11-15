@@ -26,13 +26,13 @@ export function GForceMeter({ result, timestampMs }: { result: ParsedLog; timest
     <div className="gforce-modes"><button type="button" aria-pressed={mode === 'filtered'} onClick={() => setMode('filtered')}>Filtered</button><button type="button" aria-pressed={mode === 'raw'} onClick={() => setMode('raw')}>Raw</button></div>
     <p className="gforce-mode-label" role="status">{displayMode === 'filtered' ? '차량축 · 필터링 + 동적 중력 제거' : displayMode === 'sensorAdjusted' ? '센서축 · 필터링 + 초기 정지 기준 변화량' : displayMode === 'sensorFiltered' ? '센서축 · 필터링 (정지 기준 없음, 중력 포함)' : '센서축 · 원본 (중력 포함)'}</p>
     <svg viewBox="0 0 320 320" role="img" aria-label={`${vehicle ? 'Vehicle linear' : 'Sensor specific'} XY ${metric(sample?.magnitude)}`}>
-      <defs><radialGradient id={gradient}><stop stopColor="#203244"/><stop offset="1" stopColor="#10171f"/></radialGradient></defs>
+      <defs><radialGradient id={gradient}><stop stopColor="#e8f1ff"/><stop offset="1" stopColor="#ffffff"/></radialGradient></defs>
       <circle cx="160" cy="160" r="130" fill={`url(#${gradient})`} stroke="#3987e5" strokeOpacity="0.5"/>
       {[0.25, 0.5, 0.75, 1].map((r) => <circle key={r} cx="160" cy="160" r={112 * r} fill="none" stroke="#62778c" strokeOpacity="0.55"/>)}
       {Array.from({ length: 12 }, (_, i) => <line key={i} x1="160" y1="48" x2="160" y2="272" transform={`rotate(${i * 15} 160 160)`} stroke="#62778c" strokeOpacity="0.25"/>)}
       <text x="160" y="20" textAnchor="middle">{vehicle ? '+X 전진' : '+Y'}</text><text x="160" y="310" textAnchor="middle">{vehicle ? '−X 제동' : '−Y'}</text><text x="10" y="165">{vehicle ? '+Y' : '−X'}</text><text x="282" y="165">{vehicle ? '−Y' : '+X'}</text>
-      {trail.map((p, i) => { const [cx, cy] = position(p.x, p.y).split(','); return <circle key={i} cx={cx} cy={cy} r="2" fill="#fab219" opacity={(i + 1) / trail.length * 0.65}/>; })}
-      {sample && <circle cx={160 + (vehicle ? -sample.x : sample.x) / scale * 112} cy={160 - sample.y / scale * 112} r="6" fill="#fab219" stroke="white" strokeWidth="2"/>}
+      {trail.map((p, i) => { const [cx, cy] = position(p.x, p.y).split(','); return <circle key={i} cx={cx} cy={cy} r="2" fill="#0066dc" opacity={(i + 1) / trail.length * 0.65}/>; })}
+      {sample && <circle cx={160 + (vehicle ? -sample.x : sample.x) / scale * 112} cy={160 - sample.y / scale * 112} r="6" fill="#0066dc" stroke="white" strokeWidth="2"/>}
       <text x="160" y="287" textAnchor="middle">바깥 원 {scale.toFixed(1)} G</text>
     </svg>
     <div className="gforce-current">{metric(sample?.magnitude)}</div>

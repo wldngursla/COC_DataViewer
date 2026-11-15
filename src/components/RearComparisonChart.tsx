@@ -32,5 +32,5 @@ export function RearComparisonChart({ analysis, mode }: { analysis: RearAnalysis
     const observer = new ResizeObserver(() => chart.resize()); observer.observe(ref.current);
     return () => { observer.disconnect(); chart.dispose(); };
   }, [analysis, mode]);
-  return <div ref={ref} style={{ height: 560, minWidth: 0, width: '100%' }} aria-label="GPS Motor RL RR comparison chart" />;
+  return <div ref={ref} className="telemetry-chart" style={{ height: 560, minWidth: 0, width: '100%' }} aria-label="GPS Motor RL RR comparison chart" />;
 }

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import './App.css';
 import type { ViewId } from './components/AppNav';
 import { AppNav } from './components/AppNav';
+import { AppIdentity } from './components/AppIdentity';
 import type { LoadedRun } from './state/loadedRun';
 import { FileLoadPage } from './pages/FileLoadPage';
 import { OverviewPage } from './pages/OverviewPage';
@@ -31,9 +32,7 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <div className="app-title">
-          COC <span className="app-title-accent">Data Viewer</span>
-        </div>
+        <AppIdentity />
         <AppNav active={view} runLoaded={run !== null} onSelect={setView} />
         <div className="app-header-right">
           {run !== null && (
@@ -41,7 +40,7 @@ function App() {
               <span className="btn-file-name">{run.fileName}</span> · 파일 변경
             </button>
           )}
-          <div className="app-meta">V1 · offline</div>
+          <div className="app-meta">로컬 분석</div>
         </div>
       </header>
 

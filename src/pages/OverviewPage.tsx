@@ -13,6 +13,7 @@ import {
 } from '../calculations/overview';
 import { formatBytes, formatCount, formatDuration, formatEpochSec } from '../ui/format';
 import { StatTile } from '../components/StatTile';
+import { OverviewHero } from '../components/OverviewHero';
 
 const NA = 'N/A';
 
@@ -30,6 +31,7 @@ export function OverviewPage({ run }: OverviewPageProps) {
 
   return (
     <main className="page">
+      <OverviewHero fileName={run.fileName} />
       <section className="summary-section">
         <h2>Run</h2>
         <div className="stat-grid">

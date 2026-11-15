@@ -1,4 +1,5 @@
 /** Top navigation for the implemented analysis and raw-data pages. */
+import { NavigationIcon } from './NavigationIcon';
 
 export type ViewId = 'load' | 'overview' | 'graphs' | 'vehicle' | 'battery' | 'data' | 'health';
 
@@ -34,10 +35,11 @@ export function AppNav({ active, runLoaded, onSelect }: AppNavProps) {
             type="button"
             className={`nav-tab${active === tab.id ? ' nav-tab-active' : ''}`}
             disabled={disabled}
+            aria-current={active === tab.id ? 'page' : undefined}
             title={!runLoaded ? '먼저 .log 파일을 로드하세요' : undefined}
             onClick={() => onSelect(tab.id)}
           >
-            {tab.label}
+            <NavigationIcon view={tab.id} /><span>{tab.label}</span>
           </button>
         );
       })}

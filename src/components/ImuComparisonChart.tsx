@@ -35,5 +35,5 @@ export function ImuComparisonChart({ analysis: a, mode, linear }: { analysis: Im
     const observer = new ResizeObserver(() => chart.resize()); observer.observe(ref.current);
     return () => { observer.disconnect(); chart.dispose(); };
   }, [a, mode, linear]);
-  return <div ref={ref} style={{ width: '100%', minWidth: 0, height: 590 }} aria-label="IMU sensor and vehicle axes comparison with independent GPS" />;
+  return <div ref={ref} className="telemetry-chart" style={{ width: '100%', minWidth: 0, height: 590 }} aria-label="IMU sensor and vehicle axes comparison with independent GPS" />;
 }

@@ -4,6 +4,7 @@ import './index.css'
 import App from './App.tsx'
 import { RearSettingsProvider } from './components/RearSettingsProvider'
 import { ImuSessionProvider } from './components/ImuSessionProvider'
+import './ui/iosTheme.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

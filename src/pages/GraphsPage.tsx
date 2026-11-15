@@ -29,6 +29,7 @@ import { WheelEnvelopeControls } from '../components/WheelEnvelopeControls';
 import { GForceMeter } from '../components/GForceMeter';
 import { RearWheelLab } from '../components/RearWheelLab';
 import { ImuCalibrationLab } from '../components/ImuCalibrationLab';
+import { AnalysisDisclosure } from '../components/AnalysisDisclosure';
 
 const DEFAULT_ON: readonly SignalId[] = [
   'gpsSpeed',
@@ -177,6 +178,7 @@ export function GraphsPage({
 
   return (
     <main className="page graphs-page">
+      <div className="page-intro"><span className="eyebrow">TELEMETRY</span><h1>주행의 흐름을 읽다.</h1><p>같은 시간축 위에서 신호를 비교하고, 움직임의 차이를 발견하세요.</p></div>
       <div className="graphs-header">
         <span className="file-name">{run.fileName}</span>
         <span className="graphs-meta">
@@ -306,8 +308,8 @@ export function GraphsPage({
       </section>
 
       <WheelEnvelopeControls mode={wheelMode} windowSec={wheelWindow} onMode={setWheelMode} onWindow={setWheelWindow} />
-      <RearWheelLab run={run} />
-      <ImuCalibrationLab run={run} />
+      <AnalysisDisclosure title="휠스피드 보정" description="GPS·모터 비교, 필터 및 좌우 휠 분석"><RearWheelLab run={run} /></AnalysisDisclosure>
+      <AnalysisDisclosure title="IMU 보정 및 차량 좌표계" description="정지 기준, 장착 방향과 필터 설정"><ImuCalibrationLab run={run} /></AnalysisDisclosure>
       {activeSeries.length > 0 ? (
         <StackedSignalChart
           seriesList={activeSeries}
