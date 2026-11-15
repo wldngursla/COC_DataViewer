@@ -1,0 +1,10 @@
+.imu-lab { margin:24px 0; padding:16px; min-width:0; border:1px solid var(--border); border-radius:6px; background:var(--surface-1); }
+.imu-lab p { font-size:11px; line-height:1.7; color:var(--text-muted); overflow-wrap:anywhere; }
+.imu-lab summary { cursor:pointer; color:var(--text-secondary); }
+.imu-settings { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(190px,100%),1fr)); gap:12px; margin:16px 0; }
+.imu-settings label { display:flex; flex-direction:column; gap:4px; min-width:0; font-size:11px; }
+.imu-settings input,.imu-settings select { max-width:100%; padding:6px; color:var(--text-primary); background:var(--surface-2); border:1px solid var(--border); border-radius:4px; }
+.imu-settings input[type=checkbox] { align-self:flex-start; }
+.imu-info { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(250px,100%),1fr)); gap:16px; }
+.imu-info>div { min-width:0; }
+.imu-info pre { overflow:auto; font-size:11px; }

@@ -10,16 +10,19 @@ import { computeMaxGpsSpeedKmh, computeMaxMotorRpm, computeMaxAccelG } from '../
 import { createGraphSeriesProvider, GRAPH_SIGNALS } from '../calculations/graphSeries';
 import { describeCanFrame } from '../ui/canDisplay';
 import { computeBatteryTemperatures } from '../calculations/batteryTemperature';
-import { computeGForce } from '../calculations/gForce';
 import { computeDataHealth } from '../calculations/dataHealth';
 import { analyzeRearWheels, defaultRearSettings, type RearSettings } from '../calculations/rearCalibration';
+import { analyzeImu, defaultImuSettings, type ImuSettings } from '../calculations/imuCalibration';
+import { imuGForce } from '../calculations/imuGForce';
 
 export type Cell = string | number | boolean | null;
 export interface ExportTable { name: string; headers: string[]; rows: () => Iterable<Cell[]> }
-export function exportTables(run: LoadedRun, rearSettings: RearSettings = defaultRearSettings()): ExportTable[] {
+export function exportTables(run: LoadedRun, rearSettings: RearSettings = defaultRearSettings(), imuSettings: ImuSettings = defaultImuSettings()): ExportTable[] {
   const p = run.result;
   const rear = analyzeRearWheels(p, rearSettings);
   const rearByIndex = new Map(rear.rows.map((r) => [r.sourceIndex, r]));
+  const imu = analyzeImu(p, imuSettings);
+  const imuByIndex = new Map(imu.rows.map((r) => [r.sourceIndex, r]));
   const tables: ExportTable[] = [];
   const table = (name: string, headers: string[], rows: () => Iterable<Cell[]>) => tables.push({ name, headers, rows });
   const time = (t: number): Cell[] => [t, p.bootTimeEpochSec === null ? null : p.bootTimeEpochSec + t / 1000];
@@ -38,8 +41,28 @@ export function exportTables(run: LoadedRun, rearSettings: RearSettings = defaul
     for (const [type, count] of Object.entries(p.stats.byType)) yield ['Record counts', LOG_TYPE_NAMES[Number(type)] ?? type, count];
     yield ['Analysis', 'Max GPS speed (km/h)', computeMaxGpsSpeedKmh(p.gps)];
     yield ['Analysis', 'Max motor RPM (rpm)', computeMaxMotorRpm(p.can)];
-    const force = computeGForce(p);
+    const force = imuGForce(imu, 'filtered');
     yield ['Filtered IMU analysis', 'Max XY G (g)', force.samples.length ? force.maxG : null];
+    yield ['IMU calibration', 'Status', imu.status];
+    yield ['IMU calibration', 'Stationary start (ms)', imu.stationary?.start ?? null];
+    yield ['IMU calibration', 'Stationary end (ms)', imu.stationary?.end ?? null];
+    yield ['IMU calibration', 'Stationary samples', imu.stationary?.count ?? 0];
+    yield ['IMU calibration', 'Stationary source', imu.stationary?.source ?? 'NONE'];
+    yield ['IMU calibration', 'GPS lag (ms)', imu.lag.ms];
+    yield ['IMU calibration', 'GPS lag status', imu.lag.source];
+    for (let j = 0; j < 3; j++) {
+      yield ['IMU calibration', `Gyro bias sensor ${'XYZ'[j]} (deg/s)`, imu.stationary?.bias[j] ?? null];
+      yield ['IMU calibration', `Gravity reference sensor ${'XYZ'[j]} (g)`, imu.stationary?.gravity[j] ?? null];
+      for (let k = 0; k < 3; k++) yield ['IMU rotation vehicle←sensor', `R${j + 1}${k + 1}`, imu.rotation?.[j][k] ?? null];
+    }
+    for (const [key, value] of Object.entries(imu.settings)) yield ['IMU settings', key, Array.isArray(value) ? JSON.stringify(value) : value];
+    for (const key of ['forwardError', 'turnValidation', 'rawYawError', 'yawError', 'lateralError'] as const) for (const [metric, value] of Object.entries(imu[key])) yield ['IMU GPS holdout comparison', `${key} ${metric}`, value];
+    for (const c of imu.calibrations) {
+      yield ['IMU epoch calibration', `${c.epoch} start ms`, c.start]; yield ['IMU epoch calibration', `${c.epoch} end ms`, c.end];
+      for (let j = 0; j < 3; j++) { yield ['IMU epoch calibration', `${c.epoch} bias sensor ${'XYZ'[j]} deg/s`, c.bias[j]]; yield ['IMU epoch calibration', `${c.epoch} gravity sensor ${'XYZ'[j]} g`, c.gravity[j]]; }
+    }
+    for (const [key, value] of Object.entries(imu.counts)) yield ['IMU quality', key, value];
+    for (const note of imu.notes) yield ['IMU limitations', 'Note', note];
     const acc = computeMaxAccelG(p.gyro);
     yield ['Analysis assumed axes', 'Peak longitudinal (g)', acc?.longitudinalG ?? null];
     yield ['Analysis assumed axes', 'Peak lateral (g)', acc?.lateralG ?? null];
@@ -74,12 +97,17 @@ export function exportTables(run: LoadedRun, rearSettings: RearSettings = defaul
     const g = p.gps;
     for (let i = 0; i < g.count; i++) yield [...time(g.timestamp[i]), g.latitudeRaw[i], g.longitudeRaw[i], g.latDir[i], g.lonDir[i], g.speedRaw[i], g.courseRaw[i], rawToDecimalDegrees(g.latitudeRaw[i], g.latDir[i]), rawToDecimalDegrees(g.longitudeRaw[i], g.lonDir[i]), rawToKmh(g.speedRaw[i]), rawToCourseDeg(g.courseRaw[i])];
   });
-  table('IMU', [...timeHeaders, ...['Accel X', 'Accel Y', 'Accel Z', 'Temperature', 'Gyro X', 'Gyro Y', 'Gyro Z'].map((n) => `${n} (raw)`), 'Accel X (g)', 'Accel Y (g)', 'Accel Z (g)', 'Gyro X (deg/s)', 'Gyro Y (deg/s)', 'Gyro Z (deg/s)'], function* () {
+  const vectorHeaders = (label: string, unit: string) => ['X', 'Y', 'Z'].map((axis) => `${label} ${axis} (${unit})`);
+  const vectorCells = (v: number[] | null) => v ?? [null, null, null];
+  table('IMU', [...timeHeaders, ...['Accel X', 'Accel Y', 'Accel Z', 'Temperature', 'Gyro X', 'Gyro Y', 'Gyro Z'].map((n) => `${n} (raw)`), 'Accel X (g)', 'Accel Y (g)', 'Accel Z (g)', 'Gyro X (deg/s)', 'Gyro Y (deg/s)', 'Gyro Z (deg/s)', ...vectorHeaders('Vehicle calibrated specific force', 'g'), ...vectorHeaders('Vehicle calibrated angular rate', 'deg/s'), ...vectorHeaders('Vehicle filtered specific force', 'g'), ...vectorHeaders('Vehicle filtered angular rate', 'deg/s'), ...vectorHeaders('Vehicle linear acceleration', 'g'), ...vectorHeaders('Vehicle filtered linear acceleration', 'g'), ...vectorHeaders('Gravity direction vehicle', 'g'), 'GPS longitudinal (g)', 'GPS yaw CCW (deg/s)', 'GPS lateral (g)', 'IMU Quality Flag', 'Calibration Status'], function* () {
     const g = p.gyro;
-    for (let i = 0; i < g.count; i++) yield [...time(g.timestamp[i]), g.accelX[i], g.accelY[i], g.accelZ[i], g.temperature[i], g.gyroX[i], g.gyroY[i], g.gyroZ[i], rawToG(g.accelX[i]), rawToG(g.accelY[i]), rawToG(g.accelZ[i]), rawToDps(g.gyroX[i]), rawToDps(g.gyroY[i]), rawToDps(g.gyroZ[i])];
+    for (let i = 0; i < g.count; i++) { const r = imuByIndex.get(i)!; yield [...time(g.timestamp[i]), g.accelX[i], g.accelY[i], g.accelZ[i], g.temperature[i], g.gyroX[i], g.gyroY[i], g.gyroZ[i], rawToG(g.accelX[i]), rawToG(g.accelY[i]), rawToG(g.accelZ[i]), rawToDps(g.gyroX[i]), rawToDps(g.gyroY[i]), rawToDps(g.gyroZ[i]), ...vectorCells(r.accel), ...vectorCells(r.gyro), ...vectorCells(r.filteredAccel), ...vectorCells(r.filteredGyro), ...vectorCells(r.linear), ...vectorCells(r.filteredLinear), ...vectorCells(r.gravity), r.gpsAccel, r.gpsYaw, r.gpsLateral, r.flags.join('|'), imu.status]; }
   });
   table('Analog', [...timeHeaders, ...p.analog.ain.map((_, i) => `AIN${i + 1} (raw)`), ...p.analog.ain.map((_, i) => `AIN${i + 1} decoded (V)`)], function* () {
     for (let i = 0; i < p.analog.count; i++) yield [...time(p.analog.timestamp[i]), ...p.analog.ain.map((a) => a[i]), ...p.analog.ain.map((a) => analogRawToVolts(a[i]))];
+  });
+  table('IMU_Sensor_Processed', [...timeHeaders, ...vectorHeaders('Sensor bias-corrected angular rate', 'deg/s'), ...vectorHeaders('Sensor filtered specific force', 'g'), ...vectorHeaders('Sensor filtered bias-corrected angular rate', 'deg/s'), 'Gyro calibration epoch', 'Quality'], function* () {
+    for (let i = 0; i < p.gyro.count; i++) { const r = imuByIndex.get(i)!; yield [...time(r.t), ...vectorCells(r.biasCorrectedSensorGyro), ...vectorCells(r.filteredSensorAccel), ...vectorCells(r.filteredSensorGyro), r.epoch, r.flags.join('|')]; }
   });
   const digital = p.digital;
   table('Digital', [...timeHeaders, ...(digital.format === 'gpio-level' ? ['DIN1 raw', 'DIN2 raw', 'DIN3 raw', 'DIN4 raw'] : ['FL stored (km/h)', 'FR stored (km/h)', 'RL stored (km/h)', 'RR stored (km/h)']), 'RL Corrected (km/h)', 'RR Corrected (km/h)', 'RL Filtered (km/h)', 'RR Filtered (km/h)', 'RL Outlier flag', 'RR Outlier flag', 'RL Quality status', 'RR Quality status'], function* () {
@@ -112,8 +140,14 @@ export function exportTables(run: LoadedRun, rearSettings: RearSettings = defaul
     const provider = createGraphSeriesProvider(p); const first = computeTimeRange(p)?.firstMs ?? 0;
     for (const def of GRAPH_SIGNALS) for (const [t, value] of provider.get(def.id).points) yield [first + t * 1000, t, def.label, value, def.unit];
   });
-  table('GForce_Analysis', [...timeHeaders, 'Filtered sensor X (g)', 'Filtered sensor Y (g)', 'Filtered XY magnitude (g)'], function* () {
-    for (const s of computeGForce(p).samples) yield [...time(s.timestampMs), s.x, s.y, s.magnitude];
+  table('GForce_Analysis', [...timeHeaders, 'Filtered vehicle lateral Y (g)', 'Filtered vehicle longitudinal X (g)', 'Filtered vehicle XY magnitude (g)'], function* () {
+    for (const s of imuGForce(imu, 'filtered').samples) yield [...time(s.timestampMs), s.x, s.y, s.magnitude];
+  });
+  table('GForce_Sensor_Raw', [...timeHeaders, 'Raw sensor X specific force (g)', 'Raw sensor Y specific force (g)', 'Raw sensor XY magnitude (g)'], function* () {
+    for (const s of imuGForce(imu, 'raw').samples) yield [...time(s.timestampMs), s.x, s.y, s.magnitude];
+  });
+  table('GPS_IMU_Reference', [...timeHeaders, 'GPS speed (km/h)', 'GPS longitudinal (m/s2)', 'GPS yaw CCW (deg/s)', 'GPS lateral (g)'], function* () {
+    for (const r of imu.gps) yield [...time(r.t), r.speed, r.acceleration, r.yaw, r.lateral];
   });
   table('Data_Health', ['First timestamp (ms since boot)', 'Source', 'Records', 'Last timestamp (ms since boot)', 'Average (Hz)', 'Median interval (ms)', 'Maximum gap (ms)', 'Large gaps', 'Status'], function* () {
     for (const h of computeDataHealth(p).sources) yield [h.firstTimestampMs, h.source.label, h.count, h.lastTimestampMs, h.averageHz, h.medianIntervalMs, h.maximumGapMs, h.largeGapCount, h.status];

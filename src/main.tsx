@@ -3,9 +3,10 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import { RearSettingsProvider } from './components/RearSettingsProvider'
+import { ImuSessionProvider } from './components/ImuSessionProvider'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <RearSettingsProvider><App /></RearSettingsProvider>
+    <RearSettingsProvider><ImuSessionProvider><App /></ImuSessionProvider></RearSettingsProvider>
   </StrictMode>,
 )
