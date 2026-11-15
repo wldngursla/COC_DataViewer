@@ -1,0 +1,31 @@
+/* Keep navigation on its own row: it never competes with file controls. */
+.app-header { flex-wrap: wrap; gap: 12px 20px; }
+.app-header .app-nav { order: 3; flex: 0 0 100%; width: 100%; overflow-x: auto; }
+.app-header .nav-tab { flex: 0 0 auto; }
+.app-header-right { flex: 0 1 auto; max-width: 100%; }
+.app-header .btn-file { max-width: min(260px, 45vw); }
+.data-export-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px 24px;
+  margin-bottom: 24px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-1);
+}
+.data-export-description { flex: 1 1 280px; min-width: 0; }
+.data-export-description h2 { margin: 0 0 6px; font-size: 14px; }
+.data-export-description p { margin: 0; font-size: 12px; color: var(--text-muted); overflow-wrap: anywhere; }
+.excel-export { flex: 0 1 300px; min-width: 0; max-width: 100%; }
+.excel-export-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.excel-export-actions .btn-primary { white-space: nowrap; flex-shrink: 0; }
+.excel-export-status { display: block; margin-top: 6px; font-size: 11px; color: var(--text-secondary); overflow-wrap: anywhere; }
+.excel-export-status:empty { display: none; }
+@media (max-width: 600px) {
+  .data-export-panel { padding: 14px; }
+  .excel-export { flex-basis: 100%; }
+  .app-header-right { margin-left: 0; }
+}

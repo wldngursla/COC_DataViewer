@@ -1,6 +1,6 @@
 # Excel export
 
-The header button exports the current ParsedLog snapshot locally, including the default run. No log reparse or upload occurs.
+The All Data tab's dedicated export panel exports the current ParsedLog snapshot locally, including the default run. No log reparse or upload occurs. Export controls are separate from the global navigation; progress and cancel controls wrap within the panel.
 ExcelJS runs in a dedicated Worker. The ParsedLog is cloned once into the Worker (never transferred/detached from the viewer); workbook bytes are transferred back. Only one export runs at a time.
 
 Summary contains parser counts, integrity and existing KPIs. BOOT, GPS, IMU, Analog, Digital, CAN and Events retain every parsed sample in file order, with boot-relative millisecond timestamps first. Missing epoch times are blank. CAN retains all eight stored bytes, identifier, flags and DLC, including unknown IDs. Motor/BMS/Accelerator are explicitly decoded CAN subsets at their original timestamps; temperature probes have their own sheet. Analysis and GForce_Analysis contain derived values, separately labeled, not substitutes for raw records. Unknown calibrations are not invented.

@@ -7,6 +7,8 @@ import {
 import { LogFeature } from '../parser/types';
 import type { LoadedRun } from '../state/loadedRun';
 import { formatCount, formatEpochSec } from '../ui/format';
+import { ExcelExport } from '../components/ExcelExport';
+import '../components/ExportLayout.css';
 
 const PAGE_SIZES = [25, 50, 100, 250] as const;
 
@@ -53,6 +55,14 @@ export function DataExplorerPage({ run }: DataExplorerPageProps) {
         </div>
         <span className="file-name">{run.fileName}</span>
       </header>
+
+      <section className="data-export-panel" aria-label="Excel 데이터 내보내기">
+        <div className="data-export-description">
+          <h2>Excel 데이터 내보내기</h2>
+          <p>현재 로그의 전체 센서 데이터와 분석 결과를 하나의 XLSX 파일로 다운로드합니다.</p>
+        </div>
+        <ExcelExport run={run} />
+      </section>
 
       <section className="summary-section">
         <h2>Log format</h2>

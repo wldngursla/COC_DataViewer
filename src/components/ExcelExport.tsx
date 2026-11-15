@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { LoadedRun } from '../state/loadedRun';
+import './ExportLayout.css';
 
 export function ExcelExport({ run }: { run: LoadedRun | null }) {
   const [busy, setBusy] = useState(false);
@@ -28,5 +29,5 @@ export function ExcelExport({ run }: { run: LoadedRun | null }) {
     };
     try { worker.postMessage(run); } catch (error) { setStatus(`Excel 생성 실패: ${String(error)}`); finish(); }
   };
-  return <div><button type="button" className="btn-primary" disabled={!run || busy} onClick={start}>{busy ? 'Excel 생성 중…' : 'Excel 다운로드 (.xlsx)'}</button>{busy && <button type="button" className="sig-toggle" onClick={() => { workerRef.current?.terminate(); workerRef.current = null; setBusy(false); setStatus('Excel 생성 취소'); }}>취소</button>}<span role="status" style={{ display: 'block', fontSize: 11, maxWidth: 260 }}>{status}</span></div>;
+  return <div className="excel-export"><div className="excel-export-actions"><button type="button" className="btn-primary" disabled={!run || busy} onClick={start}>{busy ? 'Excel 생성 중…' : 'Excel 다운로드 (.xlsx)'}</button>{busy && <button type="button" className="sig-toggle" onClick={() => { workerRef.current?.terminate(); workerRef.current = null; setBusy(false); setStatus('Excel 생성 취소'); }}>취소</button>}</div><span className="excel-export-status" role="status">{status}</span></div>;
 }
